@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: garg-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: garg
+      - key: PYTHON_VERSION
+        value: 3.11.0
