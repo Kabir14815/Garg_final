@@ -1,0 +1,139 @@
+.new-arrival {
+  background: var(--charcoal);
+  color: var(--text-on-dark);
+  padding: 4rem 2.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.new-arrival-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.new-arrival-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.new-arrival-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.new-arrival-desc {
+  max-width: 400px;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+.new-arrival-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nav-arrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--beige-dark);
+  background: transparent;
+  color: var(--text-on-dark);
+  cursor: pointer;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.nav-arrow:hover {
+  background: rgba(245, 240, 232, 0.1);
+  border-color: var(--gold);
+}
+
+.new-arrival-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.new-arrival-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+  color: var(--charcoal);
+  position: relative;
+  border: 1px solid var(--border-subtle);
+}
+
+.new-arrival-card-image {
+  aspect-ratio: 1;
+  background: var(--bg-warm);
+  overflow: hidden;
+}
+
+.new-arrival-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.new-arrival-card-info {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-name {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.card-price {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--gold-dark);
+}
+
+.card-cart-btn {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--charcoal);
+  color: var(--text-on-dark);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.card-cart-btn:hover {
+  background: var(--gold-dark);
+  transform: scale(1.05);
+}
+
+@media (max-width: 900px) {
+  .new-arrival-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .new-arrival-grid {
+    grid-template-columns: 1fr;
+  }
+}

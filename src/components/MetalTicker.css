@@ -1,0 +1,48 @@
+.metal-ticker-wrap {
+  width: 100%;
+  overflow: hidden;
+  background: var(--charcoal);
+  color: var(--text-on-dark);
+  padding: 0.5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.metal-ticker {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.metal-ticker-inner {
+  display: flex;
+  gap: 2rem;
+  animation: metal-ticker-scroll 40s linear infinite;
+  width: max-content;
+}
+
+.metal-ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.metal-ticker-label {
+  opacity: 0.9;
+}
+
+.metal-ticker-value {
+  font-weight: 600;
+  color: var(--gold-light);
+}
+
+@keyframes metal-ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}

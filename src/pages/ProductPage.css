@@ -1,0 +1,222 @@
+.product-page {
+  min-height: 100vh;
+  padding: 2rem 2.5rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.product-page--loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--text-muted);
+}
+
+@keyframes productFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.product-layout {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+  animation: productFadeIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.product-gallery {
+  position: sticky;
+  top: 100px;
+}
+
+.product-image-main {
+  aspect-ratio: 1;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+}
+
+.product-image-placeholder {
+  font-size: 4rem;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+.product-back {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  display: inline-block;
+}
+
+.product-back:hover {
+  color: var(--gold-dark);
+}
+
+.product-name {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  color: var(--charcoal);
+}
+
+.product-specs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.product-specs dt {
+  color: var(--text-muted);
+}
+
+.product-specs dd {
+  margin: 0;
+  color: var(--charcoal);
+}
+
+.product-pricing {
+  background: var(--bg-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.product-pricing h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: var(--charcoal);
+}
+
+.price-table {
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.price-table td {
+  padding: 0.35rem 0;
+  color: var(--text-muted);
+}
+
+.price-table td:last-child {
+  text-align: right;
+  color: var(--charcoal);
+  font-weight: 500;
+}
+
+.price-final td {
+  font-weight: 600;
+  color: var(--gold-dark) !important;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.price-formula {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+.product-min-order-msg {
+  background: var(--beige-dark);
+  color: var(--charcoal);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.product-whatsapp-section {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: var(--bg-warm);
+}
+
+.product-whatsapp-section h3 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+  color: var(--charcoal);
+}
+
+.product-whatsapp-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.whatsapp-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.whatsapp-input {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-cream);
+  font-size: 0.95rem;
+  color: var(--charcoal);
+}
+
+.delivery-options {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--charcoal);
+}
+
+.delivery-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-whatsapp {
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: #25D366;
+  color: var(--bg-cream);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.btn-whatsapp:hover:not(:disabled) {
+  filter: brightness(1.05);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.35);
+}
+
+.btn-whatsapp:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .product-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-gallery {
+    position: static;
+  }
+}
