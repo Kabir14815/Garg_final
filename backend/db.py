@@ -1,11 +1,11 @@
-"""MongoDB connection. Set MONGODB_URI in .env or use default for local dev."""
+"""MongoDB connection. Set MONGODB_URI and MONGODB_DB_NAME in .env"""
 import os
 from pymongo import MongoClient
 from pymongo.database import Database
 
-# Default URI (password 1234). Override with MONGODB_URI in .env for production.
-DEFAULT_URI = "mongodb+srv://Task:1234@cluster0.lnxh7gs.mongodb.net/?retryWrites=true&w=majority"
-URI = os.getenv("MONGODB_URI", DEFAULT_URI)
+# Never commit credentials. Copy backend/.env.example to backend/.env and add your MongoDB URI.
+# Default is local MongoDB (no credentials). For Atlas, set MONGODB_URI in .env
+URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGODB_DB_NAME", "garg")
 
 _client: MongoClient | None = None
