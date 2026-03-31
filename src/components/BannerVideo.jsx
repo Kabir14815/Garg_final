@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from 'react'
 import './BannerVideo.css'
 
 const BANNER_VIDEO_SRC = '/videos/banner.MOV?v=2'
-const BANNER_POSTER = '/images/garg-2.png'
 
 export default function BannerVideo() {
   const videoRef = useRef(null)
@@ -32,7 +31,6 @@ export default function BannerVideo() {
           ref={videoRef}
           className="banner-video-element"
           src={BANNER_VIDEO_SRC}
-          poster={BANNER_POSTER}
           autoPlay
           muted
           loop
@@ -41,7 +39,7 @@ export default function BannerVideo() {
           aria-label="Garg Jewellers brand video"
         />
         {useFallback && (
-          <div className="banner-video-fallback" style={{ backgroundImage: `url(${BANNER_POSTER})` }} />
+          <div className="banner-video-fallback banner-video-fallback--neutral" aria-hidden="true" />
         )}
         <div className="banner-video-overlay" aria-hidden="true" />
       </div>

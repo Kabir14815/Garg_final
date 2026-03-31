@@ -5,7 +5,6 @@ import { useInView } from '../hooks/useInView'
 import './Hero.css'
 
 const HERO_VIDEO_SRC = '/videos/hero.MOV'
-const HERO_POSTER = '/images/garg-2.png'
 
 const fadeUp = (reduceMotion) => ({
   initial: { opacity: 0, y: reduceMotion ? 0 : 24 },
@@ -73,7 +72,6 @@ export default function Hero() {
                   ref={videoRef}
                   className="hero-video"
                   src={HERO_VIDEO_SRC}
-                  poster={HERO_POSTER}
                   autoPlay
                   muted
                   loop
@@ -83,11 +81,7 @@ export default function Hero() {
                 />
               ) : null}
               {(!loadVideo || showPlaceholder) && (
-                <img
-                  src={HERO_POSTER}
-                  alt="Garg Jewellers – traditional gold jewellery"
-                  className="hero-circle-image"
-                />
+                <div className="hero-video-placeholder" aria-hidden="true" />
               )}
             </div>
           </div>

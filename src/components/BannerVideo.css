@@ -51,6 +51,11 @@
   background-repeat: no-repeat;
 }
 
+.banner-video-fallback--neutral {
+  background-image: none;
+  background: linear-gradient(155deg, #1a1816 0%, #2a2220 45%, #181614 100%);
+}
+
 .banner-video-overlay {
   position: absolute;
   inset: 0;
