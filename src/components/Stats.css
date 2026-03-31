@@ -1,12 +1,12 @@
 .stats {
   background: var(--bg-cream);
-  padding: 4rem 2.5rem;
+  padding: 4rem var(--section-gutter);
   position: relative;
   z-index: 1;
 }
 
 .stats-inner {
-  max-width: 1200px;
+  max-width: var(--layout-max);
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -112,4 +112,21 @@
   .stats-visual-left { justify-content: center; }
   .stats-badge { justify-content: center; }
   .stats-cards { order: 2; }
+}
+
+@media (max-width: 640px) {
+  .stats {
+    padding: 2.5rem var(--section-gutter);
+  }
+
+  .stats-cards {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .stats-card {
+    width: 100%;
+    max-width: 280px;
+  }
 }

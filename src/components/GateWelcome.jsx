@@ -16,11 +16,11 @@ export default function GateWelcome() {
   useEffect(() => {
     if (typeof window === 'undefined' || !visible) return
 
-    const delay = prefersReducedMotion ? 100 : 600
+    const delay = prefersReducedMotion ? 80 : 280
     const t1 = setTimeout(() => setPhase('open'), delay)
-    const t2 = setTimeout(() => setPhase('text'), prefersReducedMotion ? 500 : 2000)
-    const t3 = setTimeout(() => setPhase('exit'), prefersReducedMotion ? 2800 : 4400)
-    const t4 = setTimeout(closeWelcome, prefersReducedMotion ? 3400 : 5000)
+    const t2 = setTimeout(() => setPhase('text'), prefersReducedMotion ? 320 : 900)
+    const t3 = setTimeout(() => setPhase('exit'), prefersReducedMotion ? 1200 : 2200)
+    const t4 = setTimeout(closeWelcome, prefersReducedMotion ? 1650 : 2800)
 
     return () => {
       clearTimeout(t1)

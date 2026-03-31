@@ -1,0 +1,168 @@
+.digital-metal-meter {
+  --meter-copper: #8b5a3c;
+  --meter-rose: #a67c52;
+  --meter-panel: #1a1816;
+  --meter-lcd: #0d0c0b;
+  width: 100%;
+  background: linear-gradient(180deg, #2a2420 0%, #1f1c1a 48%, #181614 100%);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 1;
+}
+
+/* Sits between full-viewport banner (z-index 0) and hero (z-index 1) */
+.digital-metal-meter.digital-metal-meter--below-banner {
+  z-index: 2;
+}
+
+.digital-metal-meter-inner {
+  max-width: var(--layout-max);
+  margin: 0 auto;
+  padding: 0.45rem var(--section-gutter) 0.55rem;
+  padding-left: max(var(--section-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--section-gutter), env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1.25rem;
+}
+
+.digital-meter-eyebrow {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(232, 220, 200, 0.55);
+  flex-shrink: 0;
+}
+
+.digital-meter-panes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.65rem 1rem;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.digital-meter-panes.is-loading .digital-meter-digits {
+  opacity: 0.65;
+  animation: digital-meter-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes digital-meter-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (min-width: 640px) {
+  .digital-metal-meter-inner {
+    flex-wrap: nowrap;
+  }
+}
+
+.digital-meter-pane {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.65rem;
+  border-radius: 10px;
+  background: linear-gradient(145deg, var(--meter-panel), #121110);
+  border: 1px solid rgba(166, 124, 82, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 10px rgba(0, 0, 0, 0.35);
+  min-width: min(100%, 200px);
+}
+
+.digital-meter-pane--gold {
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+.digital-meter-pane--silver {
+  border-color: rgba(192, 200, 208, 0.35);
+}
+
+.digital-meter-pane-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 3.25rem;
+}
+
+.digital-meter-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 232, 0.88);
+}
+
+.digital-meter-sublabel {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.75);
+}
+
+.digital-meter-pane--silver .digital-meter-sublabel {
+  color: rgba(200, 210, 218, 0.7);
+}
+
+.digital-meter-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  flex: 1;
+  justify-content: flex-end;
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: var(--meter-lcd);
+  border: 1px solid rgba(80, 72, 64, 0.9);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.65);
+}
+
+.digital-meter-currency {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(212, 175, 55, 0.9);
+}
+
+.digital-meter-pane--silver .digital-meter-currency {
+  color: rgba(200, 210, 220, 0.85);
+}
+
+.digital-meter-digits {
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f4e4b8;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
+}
+
+.digital-meter-pane--silver .digital-meter-digits {
+  color: #e8eef2;
+  text-shadow: 0 0 8px rgba(200, 220, 235, 0.2);
+}
+
+.digital-meter-unit {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(232, 220, 200, 0.45);
+  margin-left: 0.1rem;
+}
+
+@media (max-width: 480px) {
+  .digital-meter-panes {
+    justify-content: stretch;
+  }
+
+  .digital-meter-pane {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 140px;
+  }
+}

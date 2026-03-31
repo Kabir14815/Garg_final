@@ -6,19 +6,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding-top: clamp(2rem, 6vw, 4rem);
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-  padding-bottom: 2rem;
+  padding-top: max(clamp(1.25rem, 5vw, 4rem), env(safe-area-inset-top, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   background: #faf8f5;
   overflow: hidden;
+  min-height: 100dvh;
 }
 
 /* SKIP button - top right, gold border, gold text */
 .gate-welcome-skip {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: max(1rem, env(safe-area-inset-top, 0px));
+  right: max(1rem, env(safe-area-inset-right, 0px));
   padding: 0.5rem 1rem;
   background: transparent;
   border: 1px solid var(--gold);
@@ -58,7 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  min-height: min(52vh, 420px);
 }
 
 /* Two halves of the gate side by side; overflow hidden so sliding doors don’t spill */
@@ -67,8 +68,8 @@
   width: 95%;
   max-width: 620px;
   aspect-ratio: 3 / 5;
-  max-height: 75vh;
-  min-height: 380px;
+  max-height: min(68vh, 560px);
+  min-height: min(42vh, 360px);
   display: flex;
   overflow: hidden;
   border-radius: 2px;
@@ -83,7 +84,7 @@
   background-size: 200% 100%;
   background-repeat: no-repeat;
   background-color: #faf8f5;
-  transition: transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform;
 }
 
@@ -114,7 +115,7 @@
   padding: 1rem 2rem;
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 0.7s ease 0.15s, transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.15s;
+  transition: opacity 0.45s ease 0.08s, transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.08s;
 }
 
 .gate-welcome-text--visible {
@@ -134,7 +135,7 @@
 /* Exit: fade out entire overlay */
 .gate-welcome--exit {
   opacity: 0;
-  transition: opacity 0.6s ease-out;
+  transition: opacity 0.4s ease-out;
   pointer-events: none;
 }
 
@@ -145,6 +146,30 @@
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .gate-door {
-    transition-duration: 0.25s;
+    transition-duration: 0.2s;
+  }
+}
+
+@media (max-width: 480px) {
+  .gate-welcome-heading {
+    letter-spacing: 0.16em;
+    font-size: clamp(0.72rem, 3.2vw, 0.95rem);
+    padding-inline: 2.75rem;
+    line-height: 1.35;
+  }
+
+  .gate-welcome-doors {
+    width: 100%;
+    max-height: min(58vh, 440px);
+    min-height: min(38vh, 300px);
+  }
+
+  .gate-welcome-text {
+    padding: 0.75rem 1rem;
+  }
+
+  .gate-welcome-tagline {
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    letter-spacing: 0.14em;
   }
 }

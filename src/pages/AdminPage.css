@@ -1,6 +1,6 @@
 .admin-page {
   min-height: 100vh;
-  padding: 2rem 2.5rem 4rem;
+  padding: 2rem var(--section-gutter) 4rem;
   background: var(--bg-cream);
   position: relative;
   z-index: 1;
@@ -229,4 +229,34 @@
 }
 .admin-msg.success {
   color: var(--emerald-soft);
+}
+
+@media (max-width: 640px) {
+  .admin-page {
+    padding: 1rem var(--section-gutter) 3rem;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .admin-tabs {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .admin-tabs button {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8rem;
+  }
 }

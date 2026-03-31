@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 2rem var(--section-gutter);
 }
 
 .login-card {
@@ -133,4 +133,17 @@
 
 .login-back:hover {
   color: var(--gold-dark);
+}
+
+@media (max-width: 640px) {
+  .login-page {
+    padding: 1rem var(--section-gutter);
+    padding-left: max(var(--section-gutter), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--section-gutter), env(safe-area-inset-right, 0px));
+    min-height: 50vh;
+  }
+
+  .login-card {
+    padding: 1.5rem;
+  }
 }

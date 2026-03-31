@@ -1,7 +1,11 @@
 import { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useInView } from '../hooks/useInView'
 import './Hero.css'
+
+const HERO_VIDEO_SRC = '/videos/hero.MOV'
+const HERO_POSTER = '/images/garg-2.png'
 
 const fadeUp = (reduceMotion) => ({
   initial: { opacity: 0, y: reduceMotion ? 0 : 24 },
@@ -16,19 +20,18 @@ export default function Hero() {
   const videoRef = useRef(null)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
   const reduceMotion = useReducedMotion()
+  const [mediaRef, mediaNearView] = useInView({ rootMargin: '140px 0px', threshold: 0 })
+  const loadVideo = reduceMotion ? false : mediaNearView
 
   useEffect(() => {
     const v = videoRef.current
-    if (!v) return
-    const hasSrc = v.getAttribute('src') && v.src && !v.src.endsWith(window.location.origin + '/')
-    if (hasSrc) {
-      const onLoad = () => setShowPlaceholder(false)
-      v.addEventListener('loadeddata', onLoad)
-      if (v.readyState >= 2) setShowPlaceholder(false)
-      v.play().catch(() => {})
-      return () => v.removeEventListener('loadeddata', onLoad)
-    }
-  }, [])
+    if (!v || !loadVideo) return
+    const onLoad = () => setShowPlaceholder(false)
+    v.addEventListener('loadeddata', onLoad)
+    if (v.readyState >= 2) setShowPlaceholder(false)
+    v.play().catch(() => {})
+    return () => v.removeEventListener('loadeddata', onLoad)
+  }, [loadVideo])
 
   return (
     <motion.section
@@ -59,26 +62,29 @@ export default function Hero() {
         </motion.div>
       </div>
 
-      <div className="hero-media">
+      <div className="hero-media" ref={mediaRef}>
         <div className="deco deco-branch deco-branch-1" />
         <div className="deco deco-branch deco-branch-2" />
         <motion.div className="circle-wrap" variants={scaleIn(reduceMotion)}>
           <div className="circle-border">
             <div className="circle-inner">
-              <video
-                ref={videoRef}
-                className="hero-video"
-                src="/videos/hero.MOV"
-                poster="/images/garg-2.png"
-                autoPlay
-                muted
-                loop
-                playsInline
-                aria-label="Garg Jewellers brand video"
-              />
-              {showPlaceholder && (
+              {loadVideo ? (
+                <video
+                  ref={videoRef}
+                  className="hero-video"
+                  src={HERO_VIDEO_SRC}
+                  poster={HERO_POSTER}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  aria-label="Garg Jewellers brand video"
+                />
+              ) : null}
+              {(!loadVideo || showPlaceholder) && (
                 <img
-                  src="/images/garg-2.png"
+                  src={HERO_POSTER}
                   alt="Garg Jewellers – traditional gold jewellery"
                   className="hero-circle-image"
                 />

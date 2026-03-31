@@ -1,13 +1,13 @@
 .new-arrival {
   background: var(--charcoal);
   color: var(--text-on-dark);
-  padding: 4rem 2.5rem;
+  padding: 4rem var(--section-gutter);
   position: relative;
   z-index: 1;
 }
 
 .new-arrival-inner {
-  max-width: 1200px;
+  max-width: var(--layout-max);
   margin: 0 auto;
 }
 
@@ -135,5 +135,16 @@
 @media (max-width: 500px) {
   .new-arrival-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .new-arrival {
+    padding: 2.5rem var(--section-gutter);
+  }
+
+  .new-arrival-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
 import './BannerVideo.css'
 
 const BANNER_VIDEO_SRC = '/videos/banner.MOV?v=2'
@@ -8,7 +7,6 @@ const BANNER_POSTER = '/images/garg-2.png'
 export default function BannerVideo() {
   const videoRef = useRef(null)
   const [useFallback, setUseFallback] = useState(false)
-  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     const v = videoRef.current
@@ -25,12 +23,9 @@ export default function BannerVideo() {
   }, [])
 
   return (
-    <motion.section
+    <section
       className="banner-video"
       aria-label="Brand video"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: reduceMotion ? 0 : 0.8, ease: 'easeOut' }}
     >
       <div className="banner-video-wrap">
         <video
@@ -42,6 +37,7 @@ export default function BannerVideo() {
           muted
           loop
           playsInline
+          preload="auto"
           aria-label="Garg Jewellers brand video"
         />
         {useFallback && (
@@ -63,6 +59,6 @@ export default function BannerVideo() {
           Hi! Welcome to The House of Garg
         </span>
       </div>
-    </motion.section>
+    </section>
   )
 }

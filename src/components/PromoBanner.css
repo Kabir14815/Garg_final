@@ -1,11 +1,11 @@
 .promo-banner {
-  padding: 3rem 2.5rem;
+  padding: 3rem var(--section-gutter);
   position: relative;
   z-index: 1;
 }
 
 .promo-banner-inner {
-  max-width: 1000px;
+  max-width: var(--layout-max);
   margin: 0 auto;
   border-radius: 20px;
   overflow: hidden;
@@ -66,4 +66,19 @@
 .promo-banner-cta:hover {
   background: var(--gold-light);
   transform: translateY(-2px);
+}
+
+@media (max-width: 640px) {
+  .promo-banner {
+    padding: 2rem var(--section-gutter);
+  }
+
+  .promo-banner-inner {
+    min-height: 220px;
+    border-radius: var(--radius-lg);
+  }
+
+  .promo-banner-content {
+    padding: 1.25rem var(--section-gutter);
+  }
 }

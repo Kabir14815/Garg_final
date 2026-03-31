@@ -1,97 +1,119 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { motion, useReducedMotion } from 'framer-motion'
 import ShopMegaMenu from './ShopMegaMenu'
 import { useAuth } from '../context/AuthContext'
 import './Header.css'
 
-const LogoIcon = () => (
-  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <circle cx="16" cy="16" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-    <circle cx="16" cy="16" r="2.5" fill="currentColor" />
-    <path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.05 7.05l2.12 2.12M22.83 22.83l2.12 2.12M7.05 24.95l2.12-2.12M22.83 9.17l2.12-2.12" stroke="currentColor" strokeWidth="1.2" />
-  </svg>
-)
+const LOGO_SRC = '/images/logo-thg.png'
+
+function MainNavLink({ to, children, onNavigate, className = '' }) {
+  const location = useLocation()
+  const isActive = location.pathname === to
+  return (
+    <Link
+      to={to}
+      className={`nav-link ${isActive ? 'is-active' : ''} ${className}`.trim()}
+      onClick={onNavigate}
+    >
+      {children}
+    </Link>
+  )
+}
 
 export default function Header() {
   const [shopOpen, setShopOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const reduceMotion = useReducedMotion()
   const location = useLocation()
   const isHome = location.pathname === '/'
 
+  const closeMenus = () => {
+    setShopOpen(false)
+    setMobileMenuOpen(false)
+  }
+
   return (
-    <motion.header
-      className={`header ${isHome ? 'header--over-video' : ''}`}
-      initial={{ opacity: 0, y: reduceMotion ? 0 : -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reduceMotion ? 0 : 0.4, ease: 'easeOut' }}
-    >
-      <Link to="/" className="logo-wrap" onClick={() => setMobileMenuOpen(false)}>
-        <div className="logo-icon">
-          <LogoIcon />
-        </div>
-        <span className="logo-text">Garg <span className="logo-accent">Jewellers</span></span>
-      </Link>
+    <header className={`header ${isHome ? 'header--over-video' : ''}`}>
+      <div className="header-inner">
+        <Link to="/" className="header-brand" onClick={closeMenus}>
+          <img
+            src={LOGO_SRC}
+            alt="The House of Garg monogram"
+            className="header-logo-img"
+            width={44}
+            height={44}
+            decoding="async"
+          />
+          <span className="logo-text">
+            Garg <span className="logo-accent">Jewellers</span>
+          </span>
+        </Link>
 
-      <nav className={`nav nav-right ${mobileMenuOpen ? 'is-open' : ''}`}>
-        <div
-          className="nav-item nav-shop"
-          onMouseEnter={() => setShopOpen(true)}
-          onMouseLeave={() => setShopOpen(false)}
-        >
-          <Link
-            to="/shop"
-            className="nav-link"
-            onClick={() => { setShopOpen(false); setMobileMenuOpen(false) }}
-            aria-expanded={shopOpen}
-            aria-haspopup="true"
+        <div className="header-nav-wrap">
+          <nav
+            className={`header-nav nav-right ${mobileMenuOpen ? 'is-open' : ''}`}
+            aria-label="Main navigation"
           >
-            Shop
-          </Link>
-          <ShopMegaMenu open={shopOpen} onClose={() => setShopOpen(false)} />
-        </div>
-        {user ? (
+            <div
+              className="nav-item nav-shop"
+              onMouseEnter={() => setShopOpen(true)}
+              onMouseLeave={() => setShopOpen(false)}
+            >
+              <Link
+                to="/shop"
+                className={`nav-link ${location.pathname.startsWith('/shop') || location.pathname.startsWith('/product') ? 'is-active' : ''}`}
+                onClick={() => { setShopOpen(false); setMobileMenuOpen(false) }}
+                aria-expanded={shopOpen}
+                aria-haspopup="true"
+              >
+                Shop
+              </Link>
+              <ShopMegaMenu open={shopOpen} onClose={() => setShopOpen(false)} />
+            </div>
+            <MainNavLink to="/about" onNavigate={closeMenus}>About</MainNavLink>
+            <MainNavLink to="/book" onNavigate={closeMenus}>Book</MainNavLink>
+            {user ? (
+              <button
+                type="button"
+                className="nav-link"
+                onClick={() => { logout(); closeMenus(); navigate('/') }}
+              >
+                Logout
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={`nav-link ${location.pathname === '/login' ? 'is-active' : ''}`}
+                onClick={() => { navigate('/login'); closeMenus() }}
+              >
+                Login
+              </button>
+            )}
+            {user?.isAdmin && (
+              <MainNavLink to="/admin" onNavigate={closeMenus}>Admin</MainNavLink>
+            )}
+            <button
+              type="button"
+              className="nav-link nav-cart"
+              onClick={() => { navigate('/cart'); closeMenus() }}
+              aria-label="View cart"
+            >
+              Cart
+            </button>
+          </nav>
+
           <button
             type="button"
-            className="nav-link"
-            onClick={() => { logout(); setMobileMenuOpen(false); navigate('/'); }}
+            className={`menu-btn ${mobileMenuOpen ? 'menu-btn--open' : ''}`}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            Logout
+            <span /><span /><span />
           </button>
-        ) : (
-          <button
-            type="button"
-            className="nav-link"
-            onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}
-          >
-            Login
-          </button>
-        )}
-        {user?.isAdmin && (
-          <Link to="/admin" className="nav-link" onClick={() => setMobileMenuOpen(false)}>Admin</Link>
-        )}
-        <button
-          type="button"
-          className="nav-link nav-cart"
-          onClick={() => { navigate('/cart'); setMobileMenuOpen(false) }}
-          aria-label="Cart"
-        >
-          Cart
-        </button>
-      </nav>
-
-      <button
-        type="button"
-        className="menu-btn"
-        aria-label="Menu"
-        aria-expanded={mobileMenuOpen}
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      >
-        <span /><span /><span />
-      </button>
-    </motion.header>
+        </div>
+      </div>
+    </header>
   )
 }

@@ -1,8 +1,17 @@
 .cart-page {
   min-height: 100vh;
-  padding: 4rem 2rem;
+  padding: 4rem var(--section-gutter);
+  padding-left: max(var(--section-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--section-gutter), env(safe-area-inset-right, 0px));
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .cart-page {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
 }
 
 .cart-inner {

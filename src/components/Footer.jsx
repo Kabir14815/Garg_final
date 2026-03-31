@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
-import { useRef } from 'react'
+import { useInView } from '../hooks/useInView'
 import { useAuth } from '../context/AuthContext'
 import './Footer.css'
 
@@ -14,8 +13,9 @@ function LocationIcon() {
 }
 
 const footerNavLinks = [
+  { label: 'About Us', to: '/about' },
+  { label: 'Book an Appointment', to: '/book' },
   { label: 'Visit Our Store', href: '#contact' },
-  { label: 'Book an Appointment', href: '#contact' },
   { label: 'Talk to an Expert', href: 'tel:+919876376859' },
   { label: 'Digi Gold', href: '#' },
   { label: 'Blogs', href: '#' },
@@ -23,18 +23,12 @@ const footerNavLinks = [
 ]
 
 export default function Footer() {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
-  const reduceMotion = useReducedMotion()
+  const [footerRef, inView] = useInView({ rootMargin: '-60px', threshold: 0.08 })
   const { user } = useAuth()
+
   return (
-    <motion.footer className="footer" id="contact" ref={ref}>
-      <motion.div
-        className="footer-cta"
-        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-        transition={{ duration: reduceMotion ? 0 : 0.5 }}
-      >
+    <footer className="footer" id="contact" ref={footerRef}>
+      <div className={`footer-cta ${inView ? 'footer-cta--visible' : ''}`}>
         <h2 className="footer-cta-title">THE HOUSE OF GARG</h2>
         <p className="footer-cta-tagline">
           Royalty Claims Its Throne in Punjab – Find a Boutique or Book a Consultation
@@ -47,18 +41,14 @@ export default function Footer() {
           <a href="tel:+919876376859">+91 98763 76859</a>
           <a href="#contact" className="footer-cta-icon" aria-label="Find us"> <LocationIcon /> </a>
         </p>
-      </motion.div>
-      <motion.nav
-        className="footer-nav"
-        aria-label="Footer"
-        initial={{ opacity: 0 }}
-        animate={inView ? { opacity: 1 } : { opacity: 0 }}
-        transition={{ duration: reduceMotion ? 0 : 0.4, delay: reduceMotion ? 0 : 0.15 }}
-      >
+      </div>
+      <nav className={`footer-nav ${inView ? 'footer-nav--visible' : ''}`} aria-label="Footer">
         <ul className="footer-nav-list">
-          {footerNavLinks.map(({ label, href }) => (
+          {footerNavLinks.map(({ label, href, to }) => (
             <li key={label}>
-              {href.startsWith('tel:') || href.startsWith('http') || href.startsWith('#') ? (
+              {to ? (
+                <Link to={to}>{label}</Link>
+              ) : href.startsWith('tel:') || href.startsWith('http') || href.startsWith('#') ? (
                 <a href={href}>{label}</a>
               ) : (
                 <Link to={href}>{label}</Link>
@@ -66,12 +56,12 @@ export default function Footer() {
             </li>
           ))}
         </ul>
-      </motion.nav>
+      </nav>
       <div className="footer-bottom">
         <p>© {new Date().getFullYear()} The House of Garg · Garg Jewellers
           {user?.isAdmin && <> · <Link to="/admin" className="footer-admin-link">Admin</Link></>}
         </p>
       </div>
-    </motion.footer>
+    </footer>
   )
 }

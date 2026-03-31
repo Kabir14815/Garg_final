@@ -31,6 +31,11 @@
   --transition-smooth: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-sans: "Outfit", system-ui, sans-serif;
+  /* Align header, sections, and page shells */
+  --layout-max: 1280px;
+  --section-gutter: clamp(1rem, 4vw, 2.5rem);
+  /* Pull hero video under top bar + header (digital meter sits below banner on home only) */
+  --header-overlap: 80px;
 }
 
 *,
@@ -51,7 +56,14 @@ body {
   background: var(--bg-cream);
   color: var(--charcoal);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+}
+
+main {
+  min-width: 0;
+  width: 100%;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
 a {
@@ -113,4 +125,16 @@ button:active:not(:disabled),
   gap: 1rem;
   padding: 3rem;
   color: var(--text-muted);
+}
+
+.page-loading {
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.home-below-fold-fallback {
+  min-height: 80px;
 }
