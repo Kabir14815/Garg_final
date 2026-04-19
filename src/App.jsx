@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { MetalRatesProvider } from './context/MetalRatesContext'
 import { AuthProvider } from './context/AuthContext'
 import GateWelcome from './components/GateWelcome'
+import MetalTicker from './components/MetalTicker'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import AdminRoute from './components/AdminRoute'
@@ -32,6 +33,7 @@ function App() {
         <MetalRatesProvider>
           <GateWelcome />
           <div className="top-bar" />
+          <MetalTicker pinned />
           <Header />
           <main>
             <Suspense fallback={<PageLoading />}>

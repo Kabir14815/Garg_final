@@ -3,9 +3,9 @@ import { useRef } from 'react'
 import './Instagram.css'
 
 const tiles = [
-  { label: 'Rings' },
-  { label: 'Style' },
-  { label: 'Necklace' },
+  { label: 'Rings', image: '/images/instagram-tile-1.png' },
+  { label: 'Style', image: '/images/instagram-tile-2.png' },
+  { label: 'Necklace', image: '/images/instagram-tile-3.png' },
 ]
 
 const stagger = (reduceMotion) => ({
@@ -29,10 +29,11 @@ export default function Instagram() {
         initial="hidden"
         animate={inView ? 'visible' : 'hidden'}
       >
-        {tiles.map(({ label }, i) => (
+        {tiles.map(({ label, image }, i) => (
           <motion.div key={i} className="instagram-tile hover-lift" variants={tileItem(reduceMotion)}>
             <div className="instagram-tile-image">
-              <span>{label}</span>
+              <img src={image} alt="" className="instagram-tile-photo" loading="lazy" decoding="async" />
+              <span className="instagram-tile-label">{label}</span>
             </div>
           </motion.div>
         ))}

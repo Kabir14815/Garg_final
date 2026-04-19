@@ -25,6 +25,7 @@ from app.store import (
     rates_get,
     rates_update,
 )
+from app.live_rates import refresh_if_stale
 
 app = FastAPI(title="Garg Jewellers API")
 
@@ -36,8 +37,12 @@ def health():
 
 
 @app.on_event("startup")
-def ensure_default_user():
-    """Create default admin user if none exist; ensure admin@garg.com has is_admin."""
+def on_startup():
+    """Prime live metal rates; seed admin user when MongoDB is available."""
+    try:
+        refresh_if_stale()
+    except Exception:
+        pass
     try:
         from db import get_db
         from app.auth import ADMIN_EMAILS
@@ -103,6 +108,10 @@ def delete_product(product_id: str):
 # ----- Metal rates (when these change, product prices update automatically) -----
 @app.get("/api/metal-rates", response_model=MetalRatesResponse)
 def get_metal_rates():
+    try:
+        refresh_if_stale()
+    except Exception:
+        pass
     return MetalRatesResponse(**rates_get())
 
 

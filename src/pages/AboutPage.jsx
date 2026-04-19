@@ -32,6 +32,34 @@ const services = [
   { title: 'Care & trust', desc: 'Sizing, polishing, and honest advice on care and storage.' },
 ]
 
+const journeyPhotos = [
+  {
+    src: '/images/journey/garg-shoot-01.png',
+    caption: 'Where craft meets intention — detail that lasts generations.',
+    alt: 'Garg Jewellers — fine gold craftsmanship',
+  },
+  {
+    src: '/images/journey/garg-shoot-02.png',
+    caption: 'Heritage collections, curated for today’s celebrations.',
+    alt: 'Heritage jewellery display at Garg Jewellers',
+  },
+  {
+    src: '/images/journey/garg-shoot-03.png',
+    caption: 'The boutique — unhurried conversations and honest guidance.',
+    alt: 'Boutique jewellery experience',
+  },
+  {
+    src: '/images/journey/garg-shoot-04.png',
+    caption: 'Bridal and festive pieces made to be remembered.',
+    alt: 'Bridal and festive gold jewellery',
+  },
+  {
+    src: '/images/journey/garg-shoot-05.png',
+    caption: 'The House of Garg — Punjab’s traditions, your story.',
+    alt: 'The House of Garg jewellery',
+  },
+]
+
 export default function AboutPage() {
   return (
     <div className="about-page">
@@ -58,6 +86,25 @@ export default function AboutPage() {
             </ul>
           </aside>
         </div>
+      </section>
+
+      <section className="about-journey" aria-labelledby="about-journey-heading">
+        <h2 id="about-journey-heading" className="about-h2">Our journey</h2>
+        <p className="about-intro about-journey-lead">
+          Moments from our world — craft, collections, and the celebrations we are part of.
+        </p>
+        <ul className="about-journey-grid">
+          {journeyPhotos.map(({ src, caption, alt }) => (
+            <li key={src} className="about-journey-card">
+              <figure className="about-journey-figure">
+                <div className="about-journey-frame">
+                  <img src={src} alt={alt} className="about-journey-img" loading="lazy" decoding="async" />
+                </div>
+                <figcaption className="about-journey-caption">{caption}</figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="about-section">

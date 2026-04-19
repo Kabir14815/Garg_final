@@ -51,8 +51,14 @@ export default function Testimonials() {
           </div>
         </motion.div>
         <motion.div className="testimonials-visual" variants={fadeUp(reduceMotion)}>
-          <div className="testimonials-image-placeholder">
-            <span>Customer</span>
+          <div className="testimonials-image-frame">
+            <img
+              src="/images/testimonial-portrait.png"
+              alt="Garg Jewellers client"
+              className="testimonials-image-photo"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
         </motion.div>
       </motion.div>

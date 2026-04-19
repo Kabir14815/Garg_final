@@ -4,7 +4,6 @@ import PromoBanner from '../components/PromoBanner'
 import Tradition from '../components/Tradition'
 import Testimonials from '../components/Testimonials'
 import Instagram from '../components/Instagram'
-import MetalTicker from '../components/MetalTicker'
 
 export default function HomeBelowFold() {
   return (
@@ -15,7 +14,6 @@ export default function HomeBelowFold() {
       <Tradition />
       <Testimonials />
       <Instagram />
-      <MetalTicker />
     </>
   )
 }

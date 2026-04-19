@@ -16,7 +16,7 @@ export default function PromoBanner() {
         transition={{ duration: reduceMotion ? 0 : 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="promo-banner-bg">
-          <img src="/images/garg-7.png" alt="" aria-hidden />
+          <img src="/images/promo-gold-exchange.png" alt="" aria-hidden />
         </div>
         <div className="promo-banner-content">
           <h2 className="promo-banner-title">Exchange your old gold for new gold</h2>

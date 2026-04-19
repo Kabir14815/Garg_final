@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Dev: leave unset to use same-origin `/api` (Vite proxies to the FastAPI server — see vite.config.js).
+// Production: set VITE_API_URL to your public API origin if it differs from the site host.
+const API_BASE = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '' : '')
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
