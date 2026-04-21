@@ -1,0 +1,409 @@
+/* ===== Variables – Jewellery theme ===== */
+:root {
+  --bg-cream: #faf8f5;
+  --bg-warm: #f5f0e8;
+  --gold: #b8860b;
+  --gold-light: #d4af37;
+  --gold-dark: #8b6914;
+  --charcoal: #2c2c2c;
+  --charcoal-soft: #3d3d3d;
+  --text-muted: #6b5b4f;
+  --white: #fff;
+  --border-subtle: rgba(184, 134, 11, 0.25);
+  --shadow-soft: 0 4px 24px rgba(44, 44, 44, 0.06);
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Outfit", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-cream);
+  color: var(--charcoal);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== Top & bottom bars ===== */
+.top-bar {
+  height: 4px;
+  background: var(--charcoal);
+  width: 100%;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  background: var(--charcoal);
+  width: 100%;
+  max-width: 85%;
+  z-index: 0;
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2.5rem 1.25rem 2rem;
+  background: var(--bg-warm);
+  position: relative;
+  z-index: 10;
+}
+
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--bg-warm);
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--gold);
+}
+
+.logo-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.logo-text {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+.logo-accent {
+  color: var(--gold-dark);
+  font-weight: 400;
+}
+
+.nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav a {
+  color: var(--charcoal-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color 0.2s;
+}
+
+.nav a:hover {
+  color: var(--gold-dark);
+}
+
+.menu-btn {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.menu-btn span {
+  width: 22px;
+  height: 2px;
+  background: var(--charcoal);
+}
+
+@media (max-width: 900px) {
+  .nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-warm);
+    flex-direction: column;
+    padding: 1rem;
+    gap: 0.75rem;
+    display: none;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .nav.is-open {
+    display: flex;
+  }
+}
+
+/* ===== Main / Hero ===== */
+.main {
+  position: relative;
+  z-index: 1;
+  padding: 2rem 2.5rem 4rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  min-height: calc(100vh - 120px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== Left content ===== */
+.hero-content {
+  position: relative;
+  padding-left: 0.5rem;
+}
+
+.headline {
+  font-family: var(--font-serif);
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--charcoal);
+  margin-bottom: 1rem;
+}
+
+.headline-line {
+  display: block;
+}
+
+.tagline {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-bottom: 1.75rem;
+  max-width: 320px;
+}
+
+.cta {
+  display: inline-block;
+  background: var(--charcoal);
+  color: var(--white);
+  padding: 0.85rem 1.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.cta:hover {
+  background: var(--charcoal-soft);
+  transform: translateY(-1px);
+}
+
+.carousel-dots {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--charcoal);
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
+.dot.active {
+  opacity: 1;
+  background: var(--gold);
+}
+
+/* ===== Decorative elements – jewellery theme ===== */
+.deco {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Gem / diamond facet shapes */
+.deco-gem {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--gold);
+  transform: rotate(45deg);
+  background: transparent;
+}
+
+.deco-gem-1 {
+  top: -0.5rem;
+  left: 0;
+  color: var(--gold);
+}
+
+.deco-gem-2 {
+  bottom: 15%;
+  right: 12%;
+  width: 10px;
+  height: 10px;
+  border-color: var(--gold-light);
+}
+
+.deco-gem-3 {
+  bottom: 8%;
+  right: 25%;
+  width: 6px;
+  height: 6px;
+  border-color: var(--gold);
+  opacity: 0.8;
+}
+
+/* Branch / vine – subtle jewellery flourish */
+.deco-branch {
+  stroke: var(--gold);
+  stroke-width: 1;
+  fill: none;
+  opacity: 0.5;
+}
+
+.deco-branch-1 {
+  top: 10%;
+  right: 5%;
+  width: 80px;
+  height: 60px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 60'%3E%3Cpath d='M10 50 Q30 20 50 30 T75 15' stroke='%23b8860b' fill='none' stroke-width='1' opacity='0.6'/%3E%3Cpath d='M15 45 Q25 35 40 38' stroke='%23b8860b' fill='none' stroke-width='0.8' opacity='0.5'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+}
+
+.deco-branch-2 {
+  bottom: 20%;
+  right: 0;
+  width: 60px;
+  height: 80px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3Cpath d='M45 80 Q30 50 35 25 L40 10' stroke='%23b8860b' fill='none' stroke-width='1' opacity='0.5'/%3E%3Ccircle cx='38' cy='12' r='2' fill='%23d4af37' opacity='0.6'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+}
+
+/* ===== Right – circular video ===== */
+.hero-media {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+}
+
+.circle-wrap {
+  position: relative;
+  width: min(420px, 90vw);
+  aspect-ratio: 1;
+}
+
+.circle-border {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--gold-light);
+  border-radius: 50%;
+  padding: 6px;
+  box-shadow: var(--shadow-soft), inset 0 0 0 1px var(--border-subtle);
+}
+
+.circle-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-warm);
+  position: relative;
+}
+
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Placeholder when no video src */
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(145deg, var(--bg-warm) 0%, #ebe4d8 100%);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.hero-video[src]:not([src=""]) ~ .video-placeholder {
+  display: none;
+}
+
+.placeholder-icon {
+  font-size: 2rem;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 2.5rem;
+  }
+
+  .hero-content {
+    padding-left: 0;
+  }
+
+  .tagline {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .carousel-dots {
+    justify-content: center;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .menu-btn {
+    display: flex;
+  }
+
+  .circle-wrap {
+    width: min(320px, 85vw);
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    padding: 1rem 1.25rem;
+  }
+
+  .main {
+    padding: 1.5rem 1.25rem 3rem;
+  }
+
+  .headline {
+    font-size: 2.5rem;
+  }
+}

@@ -1,0 +1,16 @@
+.top-bar {
+  height: 4px;
+  background: var(--charcoal);
+  width: 100%;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  background: var(--charcoal);
+  width: 100%;
+  max-width: 85%;
+  z-index: 0;
+}

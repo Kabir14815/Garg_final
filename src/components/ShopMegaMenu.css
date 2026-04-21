@@ -1,0 +1,78 @@
+.mega-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  min-width: 320px;
+  max-width: 95vw;
+  width: max-content;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(44, 44, 44, 0.12);
+  z-index: 100;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Horizontal layout: category columns in a row */
+.mega-menu-inner {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.mega-menu-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 160px;
+}
+
+.mega-menu-category {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--charcoal);
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mega-menu-category:hover {
+  color: var(--gold-dark);
+}
+
+.mega-menu-sublist,
+.mega-menu-products {
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.mega-menu-sublist li,
+.mega-menu-products li {
+  margin-bottom: 0.35rem;
+}
+
+.mega-menu-sublist a,
+.mega-menu-products a {
+  color: var(--text-muted);
+}
+
+.mega-menu-sublist a:hover,
+.mega-menu-products a:hover {
+  color: var(--gold-dark);
+}
+
+.nav-shop {
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .mega-menu-inner {
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+  .mega-menu-col {
+    min-width: 140px;
+  }
+}

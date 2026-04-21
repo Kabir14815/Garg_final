@@ -1,0 +1,131 @@
+.booking-page {
+  min-height: 70vh;
+  padding: 2.5rem var(--section-gutter) 4rem;
+  padding-left: max(var(--section-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--section-gutter), env(safe-area-inset-right, 0px));
+  position: relative;
+  z-index: 1;
+}
+
+.booking-inner {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.booking-eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.booking-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.85rem, 4vw, 2.35rem);
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 0.75rem;
+}
+
+.booking-intro {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  font-size: 0.98rem;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.booking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.booking-field span {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--charcoal-soft);
+}
+
+.booking-field input,
+.booking-field select,
+.booking-field textarea {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-cream);
+  color: var(--charcoal);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.booking-field input:focus,
+.booking-field select:focus,
+.booking-field textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.12);
+}
+
+.booking-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 520px) {
+  .booking-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.booking-submit {
+  margin-top: 0.5rem;
+  padding: 0.9rem 1.5rem;
+  background: #25d366;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.2s;
+}
+
+.booking-submit:hover {
+  filter: brightness(1.05);
+}
+
+.booking-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.booking-done {
+  background: var(--bg-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  color: var(--charcoal);
+  line-height: 1.6;
+}
+
+.booking-secondary-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--gold-dark);
+  font-weight: 500;
+}
+
+.booking-secondary-link:hover {
+  text-decoration: underline;
+}

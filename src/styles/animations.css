@@ -1,0 +1,141 @@
+/* Elegant entrance and hover animations */
+
+:root {
+  --ease-out-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 0.25s;
+  --duration-normal: 0.45s;
+  --duration-slow: 0.7s;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Utility: animate when in view (class added by JS) */
+.animate-in-view {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--duration-normal) var(--ease-out-smooth),
+              transform var(--duration-normal) var(--ease-out-smooth);
+}
+
+.animate-in-view.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.animate-stagger > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--duration-normal) var(--ease-out-smooth),
+              transform var(--duration-normal) var(--ease-out-smooth);
+}
+
+.animate-stagger.in-view > *:nth-child(1) { transition-delay: 0.05s; }
+.animate-stagger.in-view > *:nth-child(2) { transition-delay: 0.1s; }
+.animate-stagger.in-view > *:nth-child(3) { transition-delay: 0.15s; }
+.animate-stagger.in-view > *:nth-child(4) { transition-delay: 0.2s; }
+.animate-stagger.in-view > *:nth-child(5) { transition-delay: 0.25s; }
+.animate-stagger.in-view > *:nth-child(6) { transition-delay: 0.3s; }
+.animate-stagger.in-view > *:nth-child(7) { transition-delay: 0.35s; }
+.animate-stagger.in-view > *:nth-child(8) { transition-delay: 0.4s; }
+.animate-stagger.in-view > *:nth-child(9) { transition-delay: 0.45s; }
+.animate-stagger.in-view > *:nth-child(10) { transition-delay: 0.5s; }
+.animate-stagger.in-view > *:nth-child(11) { transition-delay: 0.55s; }
+.animate-stagger.in-view > *:nth-child(12) { transition-delay: 0.6s; }
+
+.animate-stagger.in-view > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Load-in animations (no JS, for above-the-fold) */
+.animate-fade-in-up {
+  animation: fadeInUp var(--duration-slow) var(--ease-out-smooth) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--duration-normal) var(--ease-out-smooth) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale var(--duration-normal) var(--ease-out-smooth) forwards;
+}
+
+/* Hover lift for cards */
+.hover-lift {
+  transition: transform var(--duration-fast) var(--ease-out-smooth),
+              box-shadow var(--duration-fast) var(--ease-out-smooth);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(44, 44, 44, 0.1);
+}
+
+/* Subtle link/button hover */
+.hover-glow {
+  transition: color var(--duration-fast), border-color var(--duration-fast),
+              box-shadow var(--duration-fast);
+}
+
+.hover-glow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-in-view,
+  .animate-stagger > *,
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-fade-in-scale,
+  [class*="hero-anim"] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .animate-in-view.in-view,
+  .animate-stagger.in-view > * {
+    opacity: 1;
+    transform: none;
+  }
+}
