@@ -4,7 +4,7 @@ import ShopMegaMenu from './ShopMegaMenu'
 import { useAuth } from '../context/AuthContext'
 import './Header.css'
 
-const LOGO_SRC = '/images/logo-thg.png'
+const LOGO_SRC = '/images/logo-new.png'
 
 function MainNavLink({ to, children, onNavigate, className = '' }) {
   const location = useLocation()
@@ -45,9 +45,12 @@ export default function Header() {
             height={44}
             decoding="async"
           />
-          <span className="logo-text">
-            Garg <span className="logo-accent">Jewellers</span>
-          </span>
+          <img
+            src="/images/name-logo4.png"
+            alt="Garg Jewellers Name"
+            className="logo-text-img"
+            style={{ height: '48px', width: 'auto', marginLeft: '12px' }}
+          />
         </Link>
 
         <div className="header-nav-wrap">

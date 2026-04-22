@@ -34,7 +34,7 @@ const services = [
 
 const journeyPhotos = [
   {
-    src: '/images/journey/garg-shoot-01.png',
+    src: '/images/journey/about-photo1.png',
     caption: 'Where craft meets intention — detail that lasts generations.',
     alt: 'Garg Jewellers — fine gold craftsmanship',
   },
@@ -49,12 +49,12 @@ const journeyPhotos = [
     alt: 'Boutique jewellery experience',
   },
   {
-    src: '/images/journey/garg-shoot-04.png',
+    src: '/images/journey/about-photo4.png',
     caption: 'Bridal and festive pieces made to be remembered.',
     alt: 'Bridal and festive gold jewellery',
   },
   {
-    src: '/images/journey/garg-shoot-05.png',
+    src: '/images/journey/about-photo5.png',
     caption: 'The House of Garg — Punjab’s traditions, your story.',
     alt: 'The House of Garg jewellery',
   },
