@@ -28,7 +28,7 @@ export default function Hero() {
     const onLoad = () => setShowPlaceholder(false)
     v.addEventListener('loadeddata', onLoad)
     if (v.readyState >= 2) setShowPlaceholder(false)
-    v.play().catch(() => {})
+    v.play().catch(() => { })
     return () => v.removeEventListener('loadeddata', onLoad)
   }, [loadVideo])
 
@@ -43,10 +43,11 @@ export default function Hero() {
       <div className="hero-content">
         <motion.div className="deco deco-gem deco-gem-1" variants={fadeUp(reduceMotion)} />
         <motion.h1 className="headline" variants={fadeUp(reduceMotion)}>
-          <span className="headline-line">Usher in</span>
-          <span className="headline-line">Royal Exclusivity</span>
+
+          <span className="headline-line">Garg Jewellers</span>
         </motion.h1>
-        <motion.p className="tagline" variants={fadeUp(reduceMotion)}>The House of Garg — where the most gleaming jewels meet haute couture in the heart of the city beautiful.</motion.p>
+        <motion.p className="tagline" variants={fadeUp(reduceMotion)}>Garg Jewellers is a renowned Jewellery firm of kharar known by the name of Ved Parkash and Sons your one stop jewellery destination to shop all your wedding and routine jewellery.
+          Covering dazzling collection of Gold, Silver and Diamond products.</motion.p>
         <motion.p className="hero-house" variants={fadeUp(reduceMotion)}>THE HOUSE OF GARG · GARG JEWELLERY · GARG FASHION</motion.p>
         <motion.div className="hero-ctas" variants={fadeUp(reduceMotion)}>
           <Link to="/shop" className="cta cta-primary">Explore collection</Link>
