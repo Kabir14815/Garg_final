@@ -5,12 +5,13 @@
 }
 
 .promo-banner-inner {
-  max-width: var(--layout-max);
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   border-radius: 20px;
   overflow: hidden;
   position: relative;
-  min-height: 280px;
+  min-height: 400px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,7 +76,7 @@
   }
 
   .promo-banner-inner {
-    min-height: 220px;
+    min-height: 300px;
     border-radius: var(--radius-lg);
   }
 

@@ -1,12 +1,23 @@
 import { Link } from 'react-router-dom'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import './PromoBanner.css'
+
+const PROMO_SLIDES = ['/images/hero-1.jpeg', '/images/hero-2.jpeg']
 
 export default function PromoBanner() {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-40px' })
   const reduceMotion = useReducedMotion()
+  const [activeSlide, setActiveSlide] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % PROMO_SLIDES.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
+
   return (
     <motion.section className="promo-banner" ref={ref}>
       <motion.div
@@ -16,7 +27,24 @@ export default function PromoBanner() {
         transition={{ duration: reduceMotion ? 0 : 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="promo-banner-bg">
-          <img src="/images/promo-banner.png?v=3" alt="" aria-hidden />
+          {PROMO_SLIDES.map((src, i) => (
+            <img
+              key={src}
+              src={src}
+              alt=""
+              aria-hidden
+              style={{
+                opacity: i === activeSlide ? 0.85 : 0,
+                transition: 'opacity 1s ease-in-out',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+          ))}
         </div>
         <div className="promo-banner-content">
           <h2 className="promo-banner-title">Exchange your old gold for new gold</h2>

@@ -33,18 +33,11 @@ export default function Tradition() {
         <motion.div className="tradition-images" variants={item(reduceMotion)}>
           <div className="tradition-img-main">
             <img
-              src="/images/DSC05613.JPG"
-              alt="Heritage gold necklace from Garg Jewellers"
+              src="/images/hero-new.webp"
+              alt="Bestsellers from Garg Jewellers"
               className="tradition-img-photo"
               loading="lazy"
               decoding="async"
-            />
-          </div>
-          <div className="tradition-img-overlay" aria-hidden="true">
-            <img
-              src="/images/tradition-accent.png"
-              alt=""
-              className="tradition-img-accent"
             />
           </div>
         </motion.div>
