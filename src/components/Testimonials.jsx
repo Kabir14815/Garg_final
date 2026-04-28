@@ -1,12 +1,24 @@
 import { motion, useInView, useReducedMotion } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import './Testimonials.css'
 
-const quote = {
-  text: 'Amazing service. My ring was a bit too big and they offered to resize it for free and very swiftly.',
-  author: 'Kathryn Murphy',
-  role: 'Project Manager',
-}
+const QUOTES = [
+  {
+    text: 'Amazing service. My ring was a bit too big and they offered to resize it for free and very swiftly.',
+    author: 'Kathryn Murphy',
+    role: 'Project Manager',
+  },
+  {
+    text: 'The craftsmanship of their jewelry is unparalleled. I found the perfect diamond necklace for my wedding.',
+    author: 'Priya Sharma',
+    role: 'Bride',
+  },
+  {
+    text: 'A trusted name in the city. Their gold and silver collections are stunning, and the staff is extremely helpful.',
+    author: 'Rohan Verma',
+    role: 'Entrepreneur',
+  }
+]
 
 const fadeUp = (reduceMotion) => ({
   hidden: { opacity: 0, y: reduceMotion ? 0 : 20 },
@@ -21,6 +33,18 @@ export default function Testimonials() {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-40px' })
   const reduceMotion = useReducedMotion()
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  const handleNext = () => {
+    setActiveIndex((prev) => (prev + 1) % QUOTES.length)
+  }
+
+  const handlePrev = () => {
+    setActiveIndex((prev) => (prev - 1 + QUOTES.length) % QUOTES.length)
+  }
+
+  const quote = QUOTES[activeIndex]
+
   return (
     <motion.section className="testimonials" ref={ref}>
       <motion.h2
@@ -40,25 +64,22 @@ export default function Testimonials() {
       >
         <motion.div className="testimonials-content" variants={fadeUp(reduceMotion)}>
           <span className="testimonials-quote-mark">"</span>
-          <blockquote className="testimonials-quote">{quote.text}</blockquote>
-          <div className="testimonials-author">
-            <strong>{quote.author}</strong>
-            <span>{quote.role}</span>
-          </div>
+          <p className="testimonials-intro">
+            Hear from our happy customers who trust Garg Jewellers for their special moments. We take immense pride in our craftsmanship, ensuring every piece reflects elegance and brilliance.
+          </p>
           <div className="testimonials-nav">
-            <button type="button" className="test-nav-arrow" aria-label="Previous">←</button>
-            <button type="button" className="test-nav-arrow" aria-label="Next">→</button>
+            <button type="button" onClick={handlePrev} className="test-nav-arrow" aria-label="Previous">←</button>
+            <button type="button" onClick={handleNext} className="test-nav-arrow" aria-label="Next">→</button>
           </div>
         </motion.div>
         <motion.div className="testimonials-visual" variants={fadeUp(reduceMotion)}>
-          <div className="testimonials-image-frame">
-            <img
-              src="/images/testimonial-portrait.png"
-              alt="Garg Jewellers client"
-              className="testimonials-image-photo"
-              loading="lazy"
-              decoding="async"
-            />
+          <div className="testimonials-card">
+            <div className="testimonials-stars">★★★★★</div>
+            <p className="testimonials-card-text">{quote.text}</p>
+            <hr className="testimonials-divider" />
+            <div className="testimonials-card-author">
+              <strong>-{quote.author}</strong>
+            </div>
           </div>
         </motion.div>
       </motion.div>

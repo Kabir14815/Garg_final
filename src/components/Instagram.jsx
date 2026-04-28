@@ -3,9 +3,9 @@ import { useRef } from 'react'
 import './Instagram.css'
 
 const tiles = [
-  { label: 'Rings', image: '/images/instagram-tile-1.png' },
-  { label: 'Style', image: '/images/instagram-tile-2.png' },
-  { label: 'Necklace', image: '/images/instagram-tile-3.png' },
+  { label: 'Rings', image: '/images/instagram-rings-new.jpg' },
+  { label: 'Style', image: '/images/instagram-style-new.jpg' },
+  { label: 'Necklace', image: '/images/instagram-necklace-new.jpg' },
 ]
 
 const stagger = (reduceMotion) => ({

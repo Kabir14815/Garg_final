@@ -1,65 +1,6 @@
 import { Link } from 'react-router-dom'
 import './AboutPage.css'
 
-const values = [
-  {
-    title: 'Honest metal',
-    text:
-      'We stand behind purity and clear hallmarks. What you see is what you wear — no shortcuts, no surprises at billing.',
-  },
-  {
-    title: 'Artisan craft',
-    text:
-      'Our makers blend classical motifs with clean, modern lines so every piece feels timeless yet right for today.',
-  },
-  {
-    title: 'Personal service',
-    text:
-      'Jewellery is personal. We listen first — for weddings, gifts, or heirlooms — then guide you without rush.',
-  },
-]
-
-const milestones = [
-  { year: 'Heritage', text: 'Rooted in Punjab’s goldsmithing traditions, serving families across generations.' },
-  { year: 'Bespoke', text: 'Custom design and remodelling for pieces that tell your story.' },
-  { year: 'Today', text: 'A curated boutique experience with transparent pricing and private consultations.' },
-]
-
-const services = [
-  { title: 'Bridal & wedding', desc: 'Necklaces, sets, and coordination for the whole celebration.' },
-  { title: 'Daily & festive', desc: 'Gold you can live in — lightweight options and statement pieces.' },
-  { title: 'Custom design', desc: 'Sketches to finished jewel, with your metal or ours.' },
-  { title: 'Care & trust', desc: 'Sizing, polishing, and honest advice on care and storage.' },
-]
-
-const journeyPhotos = [
-  {
-    src: '/images/journey/garg-shoot-01.png',
-    caption: 'Where craft meets intention — detail that lasts generations.',
-    alt: 'Garg Jewellers — fine gold craftsmanship',
-  },
-  {
-    src: '/images/journey/garg-shoot-02.png',
-    caption: 'Heritage collections, curated for today’s celebrations.',
-    alt: 'Heritage jewellery display at Garg Jewellers',
-  },
-  {
-    src: '/images/journey/garg-shoot-03.png',
-    caption: 'The boutique — unhurried conversations and honest guidance.',
-    alt: 'Boutique jewellery experience',
-  },
-  {
-    src: '/images/journey/garg-shoot-04.png',
-    caption: 'Bridal and festive pieces made to be remembered.',
-    alt: 'Bridal and festive gold jewellery',
-  },
-  {
-    src: '/images/journey/garg-shoot-05.png',
-    caption: 'The House of Garg — Punjab’s traditions, your story.',
-    alt: 'The House of Garg jewellery',
-  },
-]
-
 export default function AboutPage() {
   return (
     <div className="about-page">
@@ -89,61 +30,57 @@ export default function AboutPage() {
       </section>
 
       <section className="about-journey" aria-labelledby="about-journey-heading">
-        <h2 id="about-journey-heading" className="about-h2">Our journey</h2>
+        <div className="about-banner">
+          <img src="/images/artboard-4.png" alt="The House of Garg" className="about-banner-img" loading="lazy" />
+        </div>
+        <h2 id="about-journey-heading" className="about-h2">OUR JOURNEY</h2>
         <p className="about-intro about-journey-lead">
           Moments from our world — craft, collections, and the celebrations we are part of.
         </p>
-        <ul className="about-journey-grid">
-          {journeyPhotos.map(({ src, caption, alt }) => (
-            <li key={src} className="about-journey-card">
-              <figure className="about-journey-figure">
-                <div className="about-journey-frame">
-                  <img src={src} alt={alt} className="about-journey-img" loading="lazy" decoding="async" />
-                </div>
-                <figcaption className="about-journey-caption">{caption}</figcaption>
-              </figure>
-            </li>
-          ))}
-        </ul>
+
+        <div className="journey-split">
+          <div className="journey-section">
+            <h3 className="journey-h3">THEN</h3>
+            <div className="journey-split-frame">
+              <img src="/images/journey-then.jpg" alt="Our journey then" className="journey-split-img" loading="lazy" decoding="async" />
+            </div>
+          </div>
+          <div className="journey-section">
+            <h3 className="journey-h3">NOW</h3>
+            <div className="journey-split-frame">
+              <img src="/images/journey-now.webp" alt="Our journey now" className="journey-split-img" loading="lazy" decoding="async" />
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section className="about-section">
-        <h2 className="about-h2">What we stand for</h2>
-        <p className="about-intro">
-          We believe jewellery should outlast trends. These principles guide how we buy, make, and sell.
+      <section className="about-section about-legacy">
+        <p className="about-legacy-text">
+          <strong className="highlight-garg">Garg Jewellers</strong>, known in Kharar as Ved Parkash and Sons, has built a strong legacy of trust and quality over the years. From a humble beginning to a modern jewellery destination, we have become your one-stop shop for both wedding and everyday jewellery.
         </p>
-        <ul className="about-values">
-          {values.map(({ title, text }) => (
-            <li key={title} className="about-value-card">
-              <h3 className="about-h3">{title}</h3>
-              <p className="about-copy">{text}</p>
-            </li>
-          ))}
-        </ul>
+        <p className="about-legacy-text">
+          Offering a beautiful collection of gold, silver, and diamond jewellery, we continue to blend tradition with modern elegance while staying committed to purity and customer satisfaction.
+        </p>
       </section>
 
-      <section className="about-section about-section--timeline">
-        <h2 className="about-h2">Heritage &amp; today</h2>
-        <ol className="about-timeline">
-          {milestones.map(({ year, text }) => (
-            <li key={year} className="about-timeline-item">
-              <span className="about-timeline-year">{year}</span>
-              <p className="about-copy">{text}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="about-section">
-        <h2 className="about-h2">How we can help</h2>
-        <ul className="about-services">
-          {services.map(({ title, desc }) => (
-            <li key={title} className="about-service">
-              <h3 className="about-h3">{title}</h3>
-              <p className="about-copy">{desc}</p>
-            </li>
-          ))}
-        </ul>
+      <section className="about-section about-owners">
+        <h2 className="about-h2 owners-title">MEET OUR OWNERS</h2>
+        <div className="owners-grid">
+          <div className="owner-card">
+            <div className="owner-image-frame">
+              <img src="/images/owners-founders.jpg" alt="Yogesh Garg & Naveen Garg" className="owner-img" loading="lazy" />
+            </div>
+            <h3 className="owner-name">YOGESH GARG & NAVEEN GARG</h3>
+            <p className="owner-title">(FOUNDERS)</p>
+          </div>
+          <div className="owner-card">
+            <div className="owner-image-frame">
+              <img src="/images/owner-coo.png" alt="Harshul Garg" className="owner-img" loading="lazy" />
+            </div>
+            <h3 className="owner-name">HARSHUL GARG</h3>
+            <p className="owner-title">(COO)</p>
+          </div>
+        </div>
       </section>
 
       <section className="about-section about-block--accent about-visit">

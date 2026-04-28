@@ -33,29 +33,22 @@ export default function Tradition() {
         <motion.div className="tradition-images" variants={item(reduceMotion)}>
           <div className="tradition-img-main">
             <img
-              src="/images/tradition-necklace.png"
-              alt="Heritage gold necklace from Garg Jewellers"
+              src="/images/hero-new.webp"
+              alt="Bestsellers from Garg Jewellers"
               className="tradition-img-photo"
               loading="lazy"
               decoding="async"
             />
           </div>
-          <div className="tradition-img-overlay" aria-hidden="true">
-            <img
-              src="/images/tradition-accent.png"
-              alt=""
-              className="tradition-img-accent"
-            />
-          </div>
         </motion.div>
         <motion.div className="tradition-content" variants={itemRight(reduceMotion)}>
-          <h2 className="tradition-title">Royalty Claims Its Throne in Punjab</h2>
+          <h2 className="tradition-title">Bestsellers of Garg Jewellers </h2>
           <p className="tradition-text">
-            Showcasing The House of Garg from Garg Jewellers — a luxury two-floor bodega in the heart of city beautiful. Two sectioned floors blooming with the most gleaming jewels and the most haute couture in the city. Step in and feel the heritage of luxury; dive into the balance of tradition and modernity.
+            We are retailers of specialised antique jewellery handcrafted work, known for the craftsmanship and providing the least making charges in sector.
           </p>
           <div className="tradition-logo-story">
-            <h3>Our insignia</h3>
-            <p>Fusing the royal hues of golden and sage, the letters T, H and G meet in perfect artistic proportions. The T takes the form of a handleless dagger, symbolising strength and precision; the G gracefully encircles the H, weaving unity and timelessness. Together they craft royal sophistication and the strong legacy of The House of Garg.</p>
+            <h3>Our Vision</h3>
+            <p>Reaching to the heart of more and more people providing the best jewellery, diamond and silver products. Expanding our legacy.</p>
           </div>
           <a href="#contact" className="cta-tradition">Visit us →</a>
         </motion.div>
