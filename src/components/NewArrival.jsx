@@ -3,10 +3,10 @@ import { useRef } from 'react'
 import './NewArrival.css'
 
 const products = [
-  { name: 'Necklace Set', price: '₹ 1,85,000', id: 1, image: '/images/new-arrival-1.png' },
-  { name: 'Diamond Bangles', price: '₹ 2,28,000', id: 2, image: '/images/new-arrival-2.png' },
-  { name: 'Gold Earrings', price: '₹ 42,000', id: 3, image: '/images/new-arrival-3.png' },
-  { name: 'Pendant Necklace', price: '₹ 95,000', id: 4, image: '/images/new-arrival-4.png' },
+  { name: 'Necklace Set', price: '₹ 1,85,000', id: 1, image: '/images/new-arrival-1.jpg' },
+  { name: 'Diamond Bangles', price: '₹ 2,28,000', id: 2, image: '/images/new-arrival-2.jpg' },
+  { name: 'Gold Earrings', price: '₹ 42,000', id: 3, image: '/images/new-arrival-3.jpg' },
+  { name: 'Pendant Necklace', price: '₹ 95,000', id: 4, image: '/images/new-arrival-4.jpg' },
 ]
 
 const fadeUp = (reduceMotion) => ({
