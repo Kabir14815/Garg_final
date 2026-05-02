@@ -1,6 +1,6 @@
 // WhatsApp order: opens WhatsApp with pre-filled message.
 // Replace with your business number (with country code, no + or spaces).
-const WHATSAPP_NUMBER = '919876376859'
+const WHATSAPP_NUMBER = '919054900042'
 
 export function buildWhatsAppOrderMessage({
   customerName = '',

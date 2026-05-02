@@ -16,7 +16,7 @@ const footerNavLinks = [
   { label: 'About Us', to: '/about' },
   { label: 'Book an Appointment', to: '/book' },
   { label: 'Visit Our Store', href: '#contact' },
-  { label: 'Talk to an Expert', href: 'tel:+919876376859' },
+  { label: 'Talk to an Expert', href: 'tel:+919054900042' },
   { label: 'Digi Gold', href: '#' },
   { label: 'Blogs', href: '#' },
   { label: 'Jewellery Guide', href: '#' },
@@ -34,11 +34,11 @@ export default function Footer() {
           Royalty Claims Its Throne in Punjab – Find a Boutique or Book a Consultation
         </p>
         <p className="footer-cta-contact">
-          <a href="https://www.thehouseofgarg.com" target="_blank" rel="noopener noreferrer">
-            WWW.THEHOUSEOFGARG.COM
+          <a href="https://mail.google.com/mail/?view=cm&fs=1&to=gargjewel@gmail.com" target="_blank" rel="noopener noreferrer">
+            gargjewel@gmail.com
           </a>
           {' | '}
-          <a href="tel:+919876376859">+91 98763 76859</a>
+          <a href="tel:+919054900042">+91 90549 00042</a>
           <a href="#contact" className="footer-cta-icon" aria-label="Find us"> <LocationIcon /> </a>
         </p>
       </div>

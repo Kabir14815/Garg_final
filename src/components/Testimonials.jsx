@@ -4,19 +4,19 @@ import './Testimonials.css'
 
 const QUOTES = [
   {
-    text: 'Amazing service. My ring was a bit too big and they offered to resize it for free and very swiftly.',
-    author: 'Kathryn Murphy',
-    role: 'Project Manager',
+    text: 'Very genuine labour charges I am a part of their monthly kitty investment plan awesome variety and lowest making charges. These people are setting standards of jewellery shopping',
+    author: 'Sukhmander Chahal',
+    role: '',
   },
   {
-    text: 'The craftsmanship of their jewelry is unparalleled. I found the perfect diamond necklace for my wedding.',
-    author: 'Priya Sharma',
-    role: 'Bride',
+    text: 'Perfect shopping experience kharar ch bethke eh log Chandigarh da taste de rhe ha dil khush hogya',
+    author: 'Kuldip Singh',
+    role: '',
   },
   {
-    text: 'A trusted name in the city. Their gold and silver collections are stunning, and the staff is extremely helpful.',
-    author: 'Rohan Verma',
-    role: 'Entrepreneur',
+    text: 'Very good experience i made a purchase for my wedding it was a very good experience and with latest jewellery collection and lowest making charges with cooperative staff and basement car parking service available a proper 3tier jewellery showroom in the centre of the town. Satisfaction level 100/100',
+    author: 'Mannit Dadhwal',
+    role: '',
   }
 ]
 

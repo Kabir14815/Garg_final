@@ -44,11 +44,11 @@ export default function Tradition() {
         <motion.div className="tradition-content" variants={itemRight(reduceMotion)}>
           <h2 className="tradition-title">Bestsellers of Garg Jewellers </h2>
           <p className="tradition-text">
-            We are retailers of specialised antique jewellery handcrafted work, known for the craftsmanship and providing the least making charges in sector.
+            We specialise in handcrafted antique jewellery, known for exceptional craftsmanship and competitive making charges in the sector.
           </p>
           <div className="tradition-logo-story">
             <h3>Our Vision</h3>
-            <p>Reaching to the heart of more and more people providing the best jewellery, diamond and silver products. Expanding our legacy.</p>
+            <p>Reaching the hearts of more people by offering the finest jewellery, diamonds, and silver pieces, while continuing to expand our legacy.</p>
           </div>
           <a href="#contact" className="cta-tradition">Visit us →</a>
         </motion.div>

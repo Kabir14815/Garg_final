@@ -14,7 +14,7 @@ export default function BannerVideo() {
     const onLoaded = () => setUseFallback(false)
     v.addEventListener('error', onError)
     v.addEventListener('loadeddata', onLoaded)
-    v.play().catch(() => {})
+    v.play().catch(() => { })
     return () => {
       v.removeEventListener('error', onError)
       v.removeEventListener('loadeddata', onLoaded)
@@ -45,7 +45,7 @@ export default function BannerVideo() {
       </div>
       <div className="banner-video-ctas">
         <a
-          href={`https://wa.me/919876376859?text=${encodeURIComponent('Hi, I would like to know more about Garg Jewellers.')}`}
+          href={`https://wa.me/919054900042?text=${encodeURIComponent('Hi, I would like to know more about Garg Jewellers.')}`}
           target="_blank"
           rel="noopener noreferrer"
           className="banner-video-cta banner-video-cta-whatsapp"
