@@ -9,11 +9,13 @@ Deploy the **frontend** on Vercel and **backend** on Render (both free tiers).
 1. Go to [render.com](https://render.com) and sign in with GitHub.
 2. Click **New** → **Web Service**.
 3. Connect your repo `Kabir14815/Garg_final`.
-4. Render will detect `render.yaml`. If not, set:
-   - **Root Directory:** `backend`
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Prefer **Blueprint** deploy so `render.yaml` applies (Python **3.11.11**, health check **`/api/health`**). If you create the service manually, set exactly:
+   - **Root Directory:** `backend` (required — without this you get `ModuleNotFoundError: No module named 'app'`)
+   - **Build Command:** `pip install --upgrade pip setuptools wheel && pip install -r requirements.txt`
+   - **Start Command:** `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - **Runtime:** Python 3
+   - **Environment:** `PYTHON_VERSION` = `3.11.11` (avoids Render’s default Python **3.14** on new services, which can fail package installs)
+   - **Health checks (optional):** If you enable HTTP health checks, use path **`/api/health`** or **`/`**
 5. Add **Environment Variables:**
    - `MONGODB_URI` = your MongoDB Atlas connection string  
      `mongodb+srv://Task:YOUR_PASSWORD@cluster0.lnxh7gs.mongodb.net/?retryWrites=true&w=majority`

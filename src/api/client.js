@@ -1,6 +1,22 @@
-// Dev: leave unset to use same-origin `/api` (Vite proxies to the FastAPI server — see vite.config.js).
-// Production: set VITE_API_URL to your public API origin if it differs from the site host.
-const API_BASE = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '' : '')
+// Dev: leave VITE_API_URL unset — same-origin `/api` (Vite proxy in vite.config.js).
+// Production (e.g. Netlify + API on Render): set VITE_API_URL = https://your-api.onrender.com (no trailing slash).
+const _raw = import.meta.env.VITE_API_URL
+const API_BASE = typeof _raw === 'string' ? _raw.replace(/\/$/, '') : ''
+
+/** Image paths from the API are like /uploads/...; prefix API origin on Netlify so <img> hits Render, not the static host. */
+function toPublicImageUrl(path) {
+  if (!path || typeof path !== 'string') return path
+  if (/^https?:\/\//i.test(path)) return path
+  if (path.startsWith('/') && API_BASE) return `${API_BASE}${path}`
+  return path
+}
+
+/** When saving, store relative /uploads/... paths the backend expects. */
+function toApiImagePath(path) {
+  if (!path || typeof path !== 'string') return path
+  if (API_BASE && path.startsWith(`${API_BASE}/`)) return path.slice(API_BASE.length) || path
+  return path
+}
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
@@ -77,7 +93,7 @@ function productFromApi(p) {
     makingCharges: p.making_charges ?? 0,
     metalType: p.metal_type,
     diamondWeight: p.diamond_weight ?? null,
-    images: p.images ?? [],
+    images: (p.images ?? []).map(toPublicImageUrl),
   }
 }
 
@@ -91,7 +107,7 @@ function productToApi(p) {
     purity: p.purity || null,
     product_type: p.type || p.product_type || 'Ring',
     diamond_weight: p.diamondWeight ?? null,
-    images: Array.isArray(p.images) ? p.images : [],
+    images: (Array.isArray(p.images) ? p.images : []).map(toApiImagePath),
   }
 }
 
@@ -162,5 +178,7 @@ export async function uploadProductImage(file) {
     } catch (_) {}
     throw err
   }
-  return res.json()
+  const data = await res.json()
+  if (data?.url) data.url = toPublicImageUrl(data.url)
+  return data
 }

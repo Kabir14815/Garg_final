@@ -13,11 +13,11 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
 ```
 
-API: http://localhost:8000  
-Docs: http://localhost:8000/docs
+API: http://localhost:10000  
+Docs: http://localhost:10000/docs
 
 ## Endpoints
 

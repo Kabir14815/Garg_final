@@ -32,6 +32,12 @@ from app.upload_routes import router as upload_router, UPLOAD_ROOT
 app = FastAPI(title="Garg Jewellers API")
 
 
+@app.get("/")
+def root():
+    """Root URL — Render and other probes often hit `/`; avoid 404 here."""
+    return {"ok": True}
+
+
 @app.get("/api/health")
 def health():
     """Health check for frontend and load balancers."""
