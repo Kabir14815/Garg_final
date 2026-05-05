@@ -67,7 +67,13 @@ def on_startup():
         pass  # MongoDB may be unavailable; auth will fail until connected
 
 
-_cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+_cors_origins = [
+    o.strip().rstrip("/")
+    for o in os.getenv("CORS_ORIGINS", "").split(",")
+    if o.strip()
+]
+
+print("CORS:", _cors_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _cors_origins if o.strip()],
