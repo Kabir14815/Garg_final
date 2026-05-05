@@ -38,7 +38,7 @@ export default function Instagram() {
           </motion.div>
         ))}
         <motion.a
-          href="https://instagram.com"
+          href="https://www.instagram.com/gargjeweller?igsh=ZzB5NW1jcnIyMGM2"
           target="_blank"
           rel="noopener noreferrer"
           className="instagram-cta-tile hover-lift"

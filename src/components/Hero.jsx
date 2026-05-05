@@ -46,13 +46,13 @@ export default function Hero() {
 
           <span className="headline-line">Garg Jewellers</span>
         </motion.h1>
-        <motion.p className="tagline" variants={fadeUp(reduceMotion)}>Garg Jewellers is a renowned Jewellery firm of kharar known by the name of Ved Parkash and Sons your one stop jewellery destination to shop all your wedding and routine jewellery.
+        <motion.p className="tagline" variants={fadeUp(reduceMotion)}>Garg Jewellers is a renowned jewellery firm in Kharar, also known as Ved Parkash and Sons. Your one-stop destination for wedding and everyday jewellery, offering a dazzling collection of gold, silver, and diamond pieces.
           Covering dazzling collection of Gold, Silver and Diamond products.</motion.p>
-        <motion.p className="hero-house" variants={fadeUp(reduceMotion)}>THE HOUSE OF GARG · GARG JEWELLERY · GARG FASHION</motion.p>
+        <motion.p className="hero-house" variants={fadeUp(reduceMotion)}>THE HOUSE OF GARG · GARG JEWELLERS · GARG FASHION</motion.p>
         <motion.div className="hero-ctas" variants={fadeUp(reduceMotion)}>
-          <Link to="/shop" className="cta cta-primary">Explore collection</Link>
-          <button type="button" className="cta cta-outline" aria-label="Play video">
-            <PlayIcon /> Play video
+          <Link to="/shop" className="cta cta-primary">Explore Collection</Link>
+          <button type="button" className="cta cta-outline" aria-label="Play Video">
+            <PlayIcon /> Play Video
           </button>
         </motion.div>
         <motion.div className="carousel-dots" variants={fadeUp(reduceMotion)}>

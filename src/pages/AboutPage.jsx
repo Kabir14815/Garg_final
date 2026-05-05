@@ -91,7 +91,7 @@ export default function AboutPage() {
         </p>
         <div className="about-actions">
           <Link to="/book" className="about-cta about-cta--outline">Schedule a visit</Link>
-          <a href="tel:+919876376859" className="about-link-phone">+91 98763 76859</a>
+          <a href="tel:+919054900042" className="about-link-phone">+91 98763 76859</a>
         </div>
       </section>
     </div>
