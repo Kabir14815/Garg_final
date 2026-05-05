@@ -4,6 +4,7 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.schemas import (
     ProductCreate,
@@ -26,6 +27,7 @@ from app.store import (
     rates_update,
 )
 from app.live_rates import refresh_if_stale
+from app.upload_routes import router as upload_router, UPLOAD_ROOT
 
 app = FastAPI(title="Garg Jewellers API")
 
@@ -67,6 +69,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(upload_router)
+
+UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+(UPLOAD_ROOT / "products").mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_ROOT)), name="uploads")
 
 
 # ----- Products -----

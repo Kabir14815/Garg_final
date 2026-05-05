@@ -8,6 +8,7 @@ import {
   deleteProduct,
   getMetalRates,
   updateMetalRates,
+  uploadProductImage,
 } from '../api/client'
 import { useMetalRates } from '../context/MetalRatesContext'
 import {
@@ -16,6 +17,63 @@ import {
   PRODUCT_TYPES,
 } from '../data/shopData'
 import './AdminPage.css'
+
+function AdminProductImages({ images, onChange, onError }) {
+  const [uploading, setUploading] = useState(false)
+
+  const pickFiles = async (e) => {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    if (!files.length) return
+    setUploading(true)
+    onError(null)
+    try {
+      const next = [...images]
+      for (const file of files) {
+        const { url } = await uploadProductImage(file)
+        next.push(url)
+      }
+      onChange(next)
+    } catch (err) {
+      onError(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="form-row admin-images-row">
+      <label>Product images</label>
+      <p className="admin-images-hint">Upload JPEG, PNG, WebP, or GIF — up to 5 MB per file. You can select several at once.</p>
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+        multiple
+        disabled={uploading}
+        className="admin-file-input"
+        onChange={pickFiles}
+      />
+      {uploading && <p className="admin-images-status">Uploading…</p>}
+      {images.length > 0 && (
+        <ul className="admin-image-previews">
+          {images.map((src, i) => (
+            <li key={`${src}-${i}`} className="admin-image-preview">
+              <img src={src} alt="" />
+              <button
+                type="button"
+                className="admin-image-remove"
+                onClick={() => onChange(images.filter((_, j) => j !== i))}
+                aria-label="Remove image"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 const emptyProduct = {
   name: '',
@@ -82,6 +140,7 @@ export default function AdminPage() {
         setShowAddForm(false)
       }
       setFormProduct(emptyProduct)
+      setError(null)
       loadProducts()
     } catch (err) {
       setError(err.message || 'Save failed')
@@ -216,15 +275,11 @@ export default function AdminPage() {
                 <label>Making charges (₹)</label>
                 <input type="number" value={formProduct.makingCharges} onChange={(e) => setFormProduct((p) => ({ ...p, makingCharges: e.target.value }))} />
               </div>
-              <div className="form-row">
-                <label>Image URLs (one per line)</label>
-                <textarea
-                  value={(formProduct.images || []).join('\n')}
-                  onChange={(e) => setFormProduct((p) => ({ ...p, images: e.target.value.split('\n').filter(Boolean) }))}
-                  placeholder="https://..."
-                  rows={3}
-                />
-              </div>
+              <AdminProductImages
+                images={formProduct.images || []}
+                onChange={(urls) => setFormProduct((p) => ({ ...p, images: urls }))}
+                onError={setError}
+              />
               <div className="form-actions">
                 <button type="submit">Save</button>
                 <button type="button" onClick={() => { setShowAddForm(false); setFormProduct(emptyProduct) }}>Cancel</button>
@@ -287,14 +342,11 @@ export default function AdminPage() {
                 <label>Making charges (₹)</label>
                 <input type="number" value={formProduct.makingCharges} onChange={(e) => setFormProduct((p) => ({ ...p, makingCharges: e.target.value }))} />
               </div>
-              <div className="form-row">
-                <label>Image URLs (one per line)</label>
-                <textarea
-                  value={(formProduct.images || []).join('\n')}
-                  onChange={(e) => setFormProduct((p) => ({ ...p, images: e.target.value.split('\n').filter(Boolean) }))}
-                  rows={3}
-                />
-              </div>
+              <AdminProductImages
+                images={formProduct.images || []}
+                onChange={(urls) => setFormProduct((p) => ({ ...p, images: urls }))}
+                onError={setError}
+              />
               <div className="form-actions">
                 <button type="submit">Update</button>
                 <button type="button" onClick={() => { setEditingId(null); setFormProduct(emptyProduct) }}>Cancel</button>

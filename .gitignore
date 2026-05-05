@@ -4,6 +4,9 @@ node_modules/
 # Build
 dist/
 
+# Uploaded product images (created at runtime)
+backend/uploads/
+
 # Python
 backend/venv/
 __pycache__/

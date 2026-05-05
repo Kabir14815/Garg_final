@@ -139,3 +139,28 @@ export async function register(email, password, name) {
     body: JSON.stringify({ email, password, name: name || undefined }),
   })
 }
+
+/** Upload one product image; returns public path e.g. /uploads/products/….jpg (dev: proxied to API). */
+export async function uploadProductImage(file) {
+  const url = `${API_BASE}/api/uploads/product-image`
+  const body = new FormData()
+  body.append('file', file)
+  let res
+  try {
+    res = await fetch(url, { method: 'POST', body })
+  } catch (e) {
+    const err = new Error(e.message === 'Failed to fetch' ? 'Unable to reach server.' : e.message)
+    err.status = 0
+    throw err
+  }
+  if (!res.ok) {
+    const err = new Error(res.statusText || 'Upload failed')
+    err.status = res.status
+    try {
+      const data = await res.json()
+      if (typeof data?.detail === 'string') err.message = data.detail
+    } catch (_) {}
+    throw err
+  }
+  return res.json()
+}
