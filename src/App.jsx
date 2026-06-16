@@ -17,6 +17,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const BookingPage = lazy(() => import('./pages/BookingPage'))
+const UserDashboard = lazy(() => import('./pages/UserDashboard'))
 
 function PageLoading() {
   return (
@@ -46,6 +47,8 @@ function App() {
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/dashboard" element={<UserDashboard />} />
+                <Route path="/my-kitty" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

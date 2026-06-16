@@ -77,13 +77,23 @@ export default function Header() {
             <MainNavLink to="/about" onNavigate={closeMenus}>About</MainNavLink>
             <MainNavLink to="/book" onNavigate={closeMenus}>Book</MainNavLink>
             {user ? (
-              <button
-                type="button"
-                className="nav-link"
-                onClick={() => { logout(); closeMenus(); navigate('/') }}
-              >
-                Logout
-              </button>
+              <>
+                {user.phone && !user.isAdmin && (
+                  <MainNavLink to="/dashboard" onNavigate={closeMenus}>
+                    🪙 My Savings
+                  </MainNavLink>
+                )}
+                {user.isAdmin && (
+                  <MainNavLink to="/admin" onNavigate={closeMenus}>Admin</MainNavLink>
+                )}
+                <button
+                  type="button"
+                  className="nav-link"
+                  onClick={() => { logout(); closeMenus(); navigate('/') }}
+                >
+                  Logout
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -92,9 +102,6 @@ export default function Header() {
               >
                 Login
               </button>
-            )}
-            {user?.isAdmin && (
-              <MainNavLink to="/admin" onNavigate={closeMenus}>Admin</MainNavLink>
             )}
             <button
               type="button"

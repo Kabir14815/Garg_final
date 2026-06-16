@@ -1,5 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { login as apiLogin, register as apiRegister } from '../api/client'
+import {
+  login as apiLogin,
+  register as apiRegister,
+  sendOtp as apiSendOtp,
+  verifyOtp as apiVerifyOtp,
+} from '../api/client'
 
 const STORAGE_KEY = 'garg-user'
 
@@ -20,9 +25,15 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
+  /** Email + password login (admin / registered users) */
   const login = async (email, password) => {
     const data = await apiLogin(email, password)
-    const userData = { email: data.email, name: data.name, isAdmin: !!data.is_admin }
+    const userData = {
+      email: data.email,
+      name: data.name,
+      isAdmin: !!data.is_admin,
+      loginType: 'email',
+    }
     setUser(userData)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
     return userData
@@ -30,7 +41,31 @@ export function AuthProvider({ children }) {
 
   const register = async (email, password, name) => {
     const data = await apiRegister(email, password, name)
-    const userData = { email: data.email, name: data.name, isAdmin: !!data.is_admin }
+    const userData = {
+      email: data.email,
+      name: data.name,
+      isAdmin: !!data.is_admin,
+      loginType: 'email',
+    }
+    setUser(userData)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
+    return userData
+  }
+
+  /** Send OTP to a phone number (step 1 of phone login) */
+  const sendOtp = async (phone) => {
+    return apiSendOtp(phone)
+  }
+
+  /** Verify OTP and sign in as a phone user (step 2 of phone login) */
+  const loginWithPhone = async (phone, otp) => {
+    const data = await apiVerifyOtp(phone, otp)
+    const userData = {
+      phone: data.phone,
+      name: data.name,
+      isAdmin: false,
+      loginType: 'phone',
+    }
     setUser(userData)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userData))
     return userData
@@ -41,7 +76,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  const value = { user, loading, login, register, logout }
+  const value = { user, loading, login, register, sendOtp, loginWithPhone, logout }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

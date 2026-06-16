@@ -141,7 +141,7 @@ export async function deleteProduct(id) {
   await request(`/api/products/${id}`, { method: 'DELETE' })
 }
 
-// Auth
+// Auth — email/password (admin)
 export async function login(email, password) {
   return request('/api/auth/login', {
     method: 'POST',
@@ -154,6 +154,145 @@ export async function register(email, password, name) {
     method: 'POST',
     body: JSON.stringify({ email, password, name: name || undefined }),
   })
+}
+
+// Auth — phone / OTP (customers)
+export async function sendOtp(phone) {
+  return request('/api/auth/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  })
+}
+
+export async function verifyOtp(phone, otp) {
+  return request('/api/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ phone, otp }),
+  })
+}
+
+// User dashboard
+export async function getUserKitties(phone) {
+  return request(`/api/user/kitties?phone=${encodeURIComponent(phone)}`)
+}
+
+// ─── Kitty Savings Scheme ─────────────────────────────────────────────────
+
+function kittyPlanFromApi(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    monthlyAmount: p.monthly_amount,
+    durationMonths: p.duration_months,
+    bonusMonths: p.bonus_months,
+    totalRedeemable: p.total_redeemable,
+    description: p.description ?? '',
+    isActive: p.is_active,
+  }
+}
+
+function kittyPlanToApi(p) {
+  return {
+    name: p.name,
+    monthly_amount: Number(p.monthlyAmount),
+    duration_months: Number(p.durationMonths),
+    bonus_months: Number(p.bonusMonths),
+    description: p.description || null,
+    is_active: p.isActive,
+  }
+}
+
+function kittyMemberFromApi(m) {
+  return {
+    id: m.id,
+    planId: m.plan_id,
+    name: m.name,
+    phone: m.phone,
+    email: m.email ?? '',
+    startDate: m.start_date,
+    notes: m.notes ?? '',
+    status: m.status,
+    payments: m.payments ?? [],
+    redemptionDate: m.redemption_date ?? null,
+    paymentsMade: m.payments_made ?? 0,
+    planDuration: m.plan_duration ?? 11,
+  }
+}
+
+function kittyMemberToApi(m) {
+  return {
+    plan_id: m.planId,
+    name: m.name,
+    phone: m.phone,
+    email: m.email || null,
+    start_date: m.startDate,
+    notes: m.notes || null,
+  }
+}
+
+export async function getKittyPlans() {
+  const list = await request('/api/kitty/plans')
+  return list.map(kittyPlanFromApi)
+}
+
+export async function createKittyPlan(plan) {
+  const p = await request('/api/kitty/plans', {
+    method: 'POST',
+    body: JSON.stringify(kittyPlanToApi(plan)),
+  })
+  return kittyPlanFromApi(p)
+}
+
+export async function updateKittyPlan(id, plan) {
+  const p = await request(`/api/kitty/plans/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(kittyPlanToApi(plan)),
+  })
+  return kittyPlanFromApi(p)
+}
+
+export async function deleteKittyPlan(id) {
+  await request(`/api/kitty/plans/${id}`, { method: 'DELETE' })
+}
+
+export async function getKittyMembers() {
+  const list = await request('/api/kitty/members')
+  return list.map(kittyMemberFromApi)
+}
+
+export async function createKittyMember(member) {
+  const m = await request('/api/kitty/members', {
+    method: 'POST',
+    body: JSON.stringify(kittyMemberToApi(member)),
+  })
+  return kittyMemberFromApi(m)
+}
+
+export async function updateKittyMember(id, data) {
+  const payload = {}
+  if (data.name !== undefined) payload.name = data.name
+  if (data.phone !== undefined) payload.phone = data.phone
+  if (data.email !== undefined) payload.email = data.email || null
+  if (data.notes !== undefined) payload.notes = data.notes || null
+  if (data.status !== undefined) payload.status = data.status
+  if (data.redemptionDate !== undefined) payload.redemption_date = data.redemptionDate || null
+  const m = await request(`/api/kitty/members/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+  return kittyMemberFromApi(m)
+}
+
+export async function addKittyPayment(memberId, month, amount, note) {
+  const m = await request(`/api/kitty/members/${memberId}/payments`, {
+    method: 'POST',
+    body: JSON.stringify({ month, amount: amount || null, note: note || null }),
+  })
+  return kittyMemberFromApi(m)
+}
+
+export async function deleteKittyMember(id) {
+  await request(`/api/kitty/members/${id}`, { method: 'DELETE' })
 }
 
 /** Upload one product image; returns public path e.g. /uploads/products/….jpg (dev: proxied to API). */
