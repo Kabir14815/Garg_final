@@ -38,17 +38,21 @@ export default function Header() {
       <div className="header-inner">
         <Link to="/" className="header-brand" onClick={closeMenus}>
           <img
-            src={LOGO_SRC}
+            src="/images/logo-thg.png"
             alt="The House of Garg monogram"
             className="header-logo-img"
             width={44}
             height={44}
             decoding="async"
+            fetchpriority="high"
           />
           <img
             src="/images/name-logo4.png"
             alt="Garg Jewellers Name"
             className="logo-text-img"
+            width={160}
+            height={48}
+            decoding="async"
             style={{ height: '48px', width: 'auto', marginLeft: '12px' }}
           />
         </Link>

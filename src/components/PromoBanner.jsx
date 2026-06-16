@@ -33,6 +33,10 @@ export default function PromoBanner() {
               src={src}
               alt=""
               aria-hidden
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              width="1400"
+              height="700"
               style={{
                 opacity: i === activeSlide ? 0.85 : 0,
                 transition: 'opacity 1s ease-in-out',

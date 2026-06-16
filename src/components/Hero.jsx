@@ -4,7 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useInView } from '../hooks/useInView'
 import './Hero.css'
 
-const HERO_VIDEO_SRC = '/videos/hero.MOV'
+// Compressed versions (webm/mp4) are preferred; MOV is a fallback for browsers that support it.
+// See optimize-media.sh in the project root to generate the compressed versions.
 
 const fadeUp = (reduceMotion) => ({
   initial: { opacity: 0, y: reduceMotion ? 0 : 24 },
@@ -72,14 +73,18 @@ export default function Hero() {
                 <video
                   ref={videoRef}
                   className="hero-video"
-                  src={HERO_VIDEO_SRC}
                   autoPlay
                   muted
                   loop
                   playsInline
-                  preload="auto"
+                  preload="none"
+                  poster="/images/hero-new.webp"
                   aria-label="Garg Jewellers brand video"
-                />
+                >
+                  <source src="/videos/hero.webm" type="video/webm" />
+                  <source src="/videos/hero.mp4" type="video/mp4" />
+                  <source src="/videos/hero.MOV" type="video/quicktime" />
+                </video>
               ) : null}
               {(!loadVideo || showPlaceholder) && (
                 <div className="hero-video-placeholder" aria-hidden="true" />

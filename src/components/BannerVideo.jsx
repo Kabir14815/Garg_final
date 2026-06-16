@@ -1,44 +1,59 @@
 import { useRef, useEffect, useState } from 'react'
 import './BannerVideo.css'
 
-const BANNER_VIDEO_SRC = '/videos/banner.MOV?v=2'
-
 export default function BannerVideo() {
+  const sectionRef = useRef(null)
   const videoRef = useRef(null)
+  const [shouldLoad, setShouldLoad] = useState(false)
   const [useFallback, setUseFallback] = useState(false)
+
+  // Only start loading the video when the section enters the viewport
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px 0px', threshold: 0 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const v = videoRef.current
-    if (!v) return
+    if (!v || !shouldLoad) return
     const onError = () => setUseFallback(true)
-    const onLoaded = () => setUseFallback(false)
     v.addEventListener('error', onError)
-    v.addEventListener('loadeddata', onLoaded)
-    v.play().catch(() => { })
-    return () => {
-      v.removeEventListener('error', onError)
-      v.removeEventListener('loadeddata', onLoaded)
-    }
-  }, [])
+    v.play().catch(() => {})
+    return () => v.removeEventListener('error', onError)
+  }, [shouldLoad])
 
   return (
-    <section
-      className="banner-video"
-      aria-label="Brand video"
-    >
+    <section className="banner-video" ref={sectionRef} aria-label="Brand video">
       <div className="banner-video-wrap">
-        <video
-          ref={videoRef}
-          className="banner-video-element"
-          src={BANNER_VIDEO_SRC}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-label="Garg Jewellers brand video"
-        />
-        {useFallback && (
+        {shouldLoad && !useFallback ? (
+          <video
+            ref={videoRef}
+            className="banner-video-element"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="none"
+            aria-label="Garg Jewellers brand video"
+          >
+            {/* Serve WebM first (smaller), MP4 as fallback, then original .MOV */}
+            <source src="/videos/banner.webm" type="video/webm" />
+            <source src="/videos/banner.mp4" type="video/mp4" />
+            <source src="/videos/banner.MOV" type="video/quicktime" />
+          </video>
+        ) : (
           <div className="banner-video-fallback banner-video-fallback--neutral" aria-hidden="true" />
         )}
         <div className="banner-video-overlay" aria-hidden="true" />

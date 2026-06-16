@@ -92,7 +92,7 @@ export default function ProductPage() {
         <div className="product-gallery">
           <div className="product-image-main">
             {product.images?.[0] ? (
-              <img src={product.images[0]} alt={product.name} />
+              <img src={product.images[0]} alt={product.name} decoding="async" fetchpriority="high" />
             ) : (
               <span className="product-image-placeholder">◆</span>
             )}

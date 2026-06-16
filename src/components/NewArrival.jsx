@@ -55,7 +55,7 @@ export default function NewArrival() {
               transition={{ duration: reduceMotion ? 0 : 0.45 }}
             >
               <div className="new-arrival-card-image">
-                <img src={image} alt={name} />
+                <img src={image} alt={name} loading="lazy" decoding="async" width="600" height="750" />
               </div>
               <div className="new-arrival-card-info">
                 <span className="card-name">{name}</span>

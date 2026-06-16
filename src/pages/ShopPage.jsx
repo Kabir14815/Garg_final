@@ -144,7 +144,7 @@ export default function ShopPage() {
                       >
                         <div className="shop-card-image">
                         {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} />
+                          <img src={product.images[0]} alt={product.name} loading="lazy" decoding="async" />
                         ) : (
                           <span className="shop-card-icon">◆</span>
                         )}
