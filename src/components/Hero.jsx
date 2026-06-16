@@ -77,13 +77,13 @@ export default function Hero() {
                   muted
                   loop
                   playsInline
-                  preload="none"
+                  preload="metadata"
                   poster="/images/hero-new.webp"
                   aria-label="Garg Jewellers brand video"
                 >
-                  <source src="/videos/hero.webm" type="video/webm" />
+                  {/* mp4 is smallest (2.8 MB); webm is fallback */}
                   <source src="/videos/hero.mp4" type="video/mp4" />
-                  <source src="/videos/hero.MOV" type="video/quicktime" />
+                  <source src="/videos/hero.webm" type="video/webm" />
                 </video>
               ) : null}
               {(!loadVideo || showPlaceholder) && (

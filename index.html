@@ -14,10 +14,13 @@
       rel="stylesheet"
     />
 
-    <!-- Preload the LCP image (hero webp — 94 KB vs 53 MB video) -->
+    <!-- Preload the hero poster (94 KB) so the circle looks filled instantly -->
     <link rel="preload" as="image" href="/images/hero-new.webp" fetchpriority="high" />
 
-    <!-- Preload the logo used on every page (small version — 91 KB) -->
+    <!-- Preload the hero video (2.8 MB mp4) early so it plays as soon as visible -->
+    <link rel="preload" as="video" href="/videos/hero.mp4" fetchpriority="high" />
+
+    <!-- Preload the logo used on every page (91 KB) -->
     <link rel="preload" as="image" href="/images/logo-thg.png" />
 
     <!-- DNS prefetch for WhatsApp link -->

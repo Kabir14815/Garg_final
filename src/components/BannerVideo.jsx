@@ -45,13 +45,12 @@ export default function BannerVideo() {
             muted
             loop
             playsInline
-            preload="none"
+            preload="metadata"
             aria-label="Garg Jewellers brand video"
           >
-            {/* Serve WebM first (smaller), MP4 as fallback, then original .MOV */}
-            <source src="/videos/banner.webm" type="video/webm" />
+            {/* mp4 is smallest (4.6 MB); webm is fallback */}
             <source src="/videos/banner.mp4" type="video/mp4" />
-            <source src="/videos/banner.MOV" type="video/quicktime" />
+            <source src="/videos/banner.webm" type="video/webm" />
           </video>
         ) : (
           <div className="banner-video-fallback banner-video-fallback--neutral" aria-hidden="true" />
