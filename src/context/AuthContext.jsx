@@ -57,12 +57,15 @@ export function AuthProvider({ children }) {
     return apiSendOtp(phone)
   }
 
-  /** Verify OTP and sign in as a phone user (step 2 of phone login) */
-  const loginWithPhone = async (phone, otp) => {
+  /** Verify OTP and sign in as a phone user (step 2 of phone login).
+   *  `formName` is the name the customer typed in the login form — it takes
+   *  priority over any name returned from the backend (which derives from kitty enrollments). */
+  const loginWithPhone = async (phone, otp, formName) => {
     const data = await apiVerifyOtp(phone, otp)
     const userData = {
       phone: data.phone,
-      name: data.name,
+      // prefer the name the customer just entered; fall back to kitty-derived name
+      name: formName || data.name || null,
       isAdmin: false,
       loginType: 'phone',
     }

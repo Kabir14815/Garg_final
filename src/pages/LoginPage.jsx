@@ -36,6 +36,7 @@ function OTPCountdown({ seconds, onExpire }) {
 function PhoneLoginForm({ onSuccess }) {
   const { sendOtp, loginWithPhone } = useAuth()
   const [step, setStep] = useState('phone')  // 'phone' | 'otp'
+  const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [devOtp, setDevOtp] = useState(null)
@@ -46,7 +47,7 @@ function PhoneLoginForm({ onSuccess }) {
 
   const handleSendOtp = async (e) => {
     e.preventDefault()
-    if (!phone.trim()) return
+    if (!phone.trim() || !name.trim()) return
     setError('')
     setSubmitting(true)
     try {
@@ -68,7 +69,7 @@ function PhoneLoginForm({ onSuccess }) {
     setError('')
     setSubmitting(true)
     try {
-      await loginWithPhone(phone.trim(), otp.trim())
+      await loginWithPhone(phone.trim(), otp.trim(), name.trim())
       onSuccess('/dashboard')
     } catch (err) {
       setError(err.body?.detail || err.message || 'Invalid OTP')
@@ -97,7 +98,19 @@ function PhoneLoginForm({ onSuccess }) {
           >
             {error && <p className="login-error" role="alert">{error}</p>}
             <div className="form-group">
-              <label htmlFor="phone">Mobile number</label>
+              <label htmlFor="cust-name">Full name <span className="required-star">*</span></label>
+              <input
+                id="cust-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full name"
+                required
+                autoComplete="name"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="phone">Mobile number <span className="required-star">*</span></label>
               <div className="phone-input-wrap">
                 <span className="phone-prefix">+91</span>
                 <input
@@ -114,7 +127,7 @@ function PhoneLoginForm({ onSuccess }) {
               </div>
               <span className="form-hint">We'll send a 6-digit OTP to verify your number.</span>
             </div>
-            <button type="submit" className="login-btn" disabled={submitting || phone.length < 10}>
+            <button type="submit" className="login-btn" disabled={submitting || phone.length < 10 || !name.trim()}>
               {submitting ? 'Sending OTP…' : 'Get OTP'}
             </button>
           </motion.form>
@@ -179,14 +192,12 @@ function PhoneLoginForm({ onSuccess }) {
   )
 }
 
-// ─── Email + Password Login (Admin) ──────────────────────────────────────────
+// ─── Email + Password Login (Admin only — no registration) ───────────────────
 
 function EmailLoginForm({ onSuccess }) {
-  const { login, register } = useAuth()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [isRegister, setIsRegister] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -195,14 +206,10 @@ function EmailLoginForm({ onSuccess }) {
     setError('')
     setSubmitting(true)
     try {
-      if (isRegister) {
-        await register(email, password, name || undefined)
-      } else {
-        await login(email, password)
-      }
+      await login(email, password)
       onSuccess('/')
     } catch (err) {
-      setError(err.body?.detail || err.message || 'Something went wrong')
+      setError(err.body?.detail || err.message || 'Invalid credentials')
     } finally {
       setSubmitting(false)
     }
@@ -211,56 +218,36 @@ function EmailLoginForm({ onSuccess }) {
   return (
     <form onSubmit={handleSubmit} className="login-form">
       {error && <p className="login-error" role="alert">{error}</p>}
-      {isRegister && (
-        <div className="form-group">
-          <label htmlFor="name-em">Name</label>
-          <input
-            id="name-em"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            autoComplete="name"
-          />
-        </div>
-      )}
       <div className="form-group">
-        <label htmlFor="email">Email</label>
+        <label htmlFor="admin-email">Email <span className="required-star">*</span></label>
         <input
-          id="email"
+          id="admin-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="admin@example.com"
+          placeholder="admin@garg.com"
           required
           autoComplete="email"
         />
       </div>
       <div className="form-group">
-        <label htmlFor="password">Password</label>
+        <label htmlFor="admin-password">Password <span className="required-star">*</span></label>
         <input
-          id="password"
+          id="admin-password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
           required
           minLength={4}
-          autoComplete={isRegister ? 'new-password' : 'current-password'}
+          autoComplete="current-password"
         />
       </div>
       <button type="submit" className="login-btn" disabled={submitting}>
-        {submitting ? 'Please wait…' : (isRegister ? 'Register' : 'Login')}
+        {submitting ? 'Logging in…' : 'Login'}
       </button>
-      <p className="login-toggle">
-        {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-        <button
-          type="button"
-          className="login-toggle-btn"
-          onClick={() => { setIsRegister(!isRegister); setError('') }}
-        >
-          {isRegister ? 'Login' : 'Register'}
-        </button>
+      <p className="admin-login-note">
+        Admin access only. Contact the store owner for credentials.
       </p>
     </form>
   )
