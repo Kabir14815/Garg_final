@@ -20,6 +20,10 @@ from app.schemas import (
     SendOTPResponse,
     VerifyOTPRequest,
     PhoneUserResponse,
+    SendEmailOTPRequest,
+    SendEmailOTPResponse,
+    VerifyEmailOTPRequest,
+    EmailUserResponse,
     KittyPlanCreate,
     KittyPlanUpdate,
     KittyPlanResponse,
@@ -54,6 +58,7 @@ from app.store import (
 )
 from app.live_rates import refresh_if_stale
 from app.upload_routes import router as upload_router, UPLOAD_ROOT
+from app.kitty_routes import public_router as kitty_public_router, admin_router as kitty_admin_router
 
 app = FastAPI(title="Garg Jewellers API")
 
@@ -72,11 +77,17 @@ def health():
 
 @app.on_event("startup")
 def on_startup():
-    """Prime live metal rates; seed admin user when MongoDB is available."""
+    """Prime live metal rates; seed admin user and kitty plans when MongoDB is available."""
     try:
         refresh_if_stale()
     except Exception:
         pass
+    try:
+        # Ensure indexes are created
+        from db import ensure_indexes
+        ensure_indexes()
+    except Exception as e:
+        print(f"⚠ Failed to ensure indexes: {e}")
     try:
         from db import get_db
         from app.auth import ADMIN_EMAILS
@@ -91,24 +102,40 @@ def on_startup():
                 )
     except Exception:
         pass  # MongoDB may be unavailable; auth will fail until connected
+    try:
+        # Seed default kitty plans
+        from app.store import seed_kitty_plans
+        seed_kitty_plans()
+    except Exception as e:
+        print(f"⚠ Failed to seed kitty plans: {e}")
 
 
-_cors_origins = [
-    o.strip().rstrip("/")
-    for o in os.getenv("CORS_ORIGINS", "").split(",")
-    if o.strip()
-]
+_cors_env = os.getenv("CORS_ORIGINS", "").strip()
+
+# Handle wildcard CORS for development
+if _cors_env == "*":
+    _cors_origins = ["*"]
+    _allow_credentials = False  # Can't use credentials with wildcard
+else:
+    _cors_origins = [
+        o.strip().rstrip("/")
+        for o in _cors_env.split(",")
+        if o.strip()
+    ]
+    _allow_credentials = True
 
 print("CORS:", _cors_origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _cors_origins if o.strip()],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(upload_router)
+app.include_router(kitty_public_router)
+app.include_router(kitty_admin_router)
 
 UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 (UPLOAD_ROOT / "products").mkdir(parents=True, exist_ok=True)
@@ -331,6 +358,156 @@ def verify_otp_endpoint(body: VerifyOTPRequest):
     name = my_members[0]["name"] if my_members else None
 
     return PhoneUserResponse(phone=norm, name=name, is_admin=False)
+
+
+# ─── Email / OTP Auth ─────────────────────────────────────────────────────────
+
+@app.post("/api/auth/send-email-otp", response_model=SendEmailOTPResponse)
+def send_email_otp_endpoint(body: SendEmailOTPRequest):
+    """Generate a 6-digit OTP and send it via email.
+
+    In mock/dev mode (no SMTP configured), the OTP is echoed back in
+    the `dev_otp` field so you can test without a real email server.
+    """
+    from app.email_otp import send_email_otp
+    
+    try:
+        result = send_email_otp(body.email)
+        return SendEmailOTPResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Failed to send OTP: {str(e)}")
+
+
+@app.post("/api/auth/verify-email-otp", response_model=EmailUserResponse)
+def verify_email_otp_endpoint(body: VerifyEmailOTPRequest):
+    """Verify email OTP and return the user's profile.
+    
+    Creates a new user if one doesn't exist with this email.
+    """
+    from app.email_otp import verify_email_otp, get_or_create_user_by_email, normalize_email
+    
+    if not verify_email_otp(body.email, body.otp):
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    
+    # Get or create user
+    user = get_or_create_user_by_email(body.email)
+    
+    return EmailUserResponse(**user)
+
+
+# ─── Enhanced Signup/Login (with password) ─────────────────────────────────────
+
+from app.schemas import (
+    SignupRequest,
+    SignupResponse,
+    VerifySignupRequest,
+    VerifySignupResponse,
+    LoginWithPasswordRequest,
+    LoginWithOTPRequest,
+    RequestLoginOTPRequest,
+    FullUserResponse,
+)
+
+
+@app.post("/api/auth/signup", response_model=SignupResponse)
+def signup_endpoint(body: SignupRequest):
+    """Step 1: Register new user and send OTP for email verification.
+    
+    Collects name, phone, email, password and sends OTP to verify email.
+    """
+    from app.email_otp import create_pending_user, send_email_otp, normalize_email
+    
+    try:
+        # Create pending user (unverified)
+        create_pending_user(body.name, body.phone, body.email, body.password)
+        
+        # Send OTP for verification
+        result = send_email_otp(body.email)
+        
+        return SignupResponse(
+            message="OTP sent to your email. Please verify to complete registration.",
+            email=normalize_email(body.email),
+            expires_in_seconds=result.get("expires_in_seconds", 300),
+            dev_otp=result.get("dev_otp"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Signup failed: {str(e)}")
+
+
+@app.post("/api/auth/verify-signup", response_model=VerifySignupResponse)
+def verify_signup_endpoint(body: VerifySignupRequest):
+    """Step 2: Verify OTP to complete registration.
+    
+    After successful verification, the user account is activated.
+    """
+    from app.email_otp import verify_email_otp, complete_signup
+    
+    if not verify_email_otp(body.email, body.otp):
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    
+    try:
+        user = complete_signup(body.email)
+        return VerifySignupResponse(**user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/auth/login/password", response_model=FullUserResponse)
+def login_with_password_endpoint(body: LoginWithPasswordRequest):
+    """Login with email and password."""
+    from app.email_otp import login_with_password
+    
+    try:
+        user = login_with_password(body.email, body.password)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        return FullUserResponse(**user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/auth/login/request-otp", response_model=SignupResponse)
+def request_login_otp_endpoint(body: RequestLoginOTPRequest):
+    """Request OTP for passwordless login."""
+    from app.email_otp import send_email_otp, get_user_by_email, normalize_email
+    
+    # Check if user exists
+    user = get_user_by_email(body.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email")
+    
+    if not user.get("is_verified", False):
+        raise HTTPException(status_code=400, detail="Please complete your registration first")
+    
+    try:
+        result = send_email_otp(body.email)
+        return SignupResponse(
+            message="OTP sent to your email",
+            email=normalize_email(body.email),
+            expires_in_seconds=result.get("expires_in_seconds", 300),
+            dev_otp=result.get("dev_otp"),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Failed to send OTP: {str(e)}")
+
+
+@app.post("/api/auth/login/otp", response_model=FullUserResponse)
+def login_with_otp_endpoint(body: LoginWithOTPRequest):
+    """Login with email and OTP (passwordless)."""
+    from app.email_otp import verify_email_otp, get_user_by_email
+    
+    if not verify_email_otp(body.email, body.otp):
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    
+    user = get_user_by_email(body.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return FullUserResponse(**user)
 
 
 # ─── User / Customer Dashboard ───────────────────────────────────────────────

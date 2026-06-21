@@ -171,6 +171,21 @@ export async function verifyOtp(phone, otp) {
   })
 }
 
+// Auth — email / OTP
+export async function sendEmailOtp(email) {
+  return request('/api/auth/send-email-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function verifyEmailOtp(email, otp) {
+  return request('/api/auth/verify-email-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  })
+}
+
 // User dashboard
 export async function getUserKitties(phone) {
   return request(`/api/user/kitties?phone=${encodeURIComponent(phone)}`)
@@ -197,6 +212,7 @@ function kittyPlanToApi(p) {
     monthly_amount: Number(p.monthlyAmount),
     duration_months: Number(p.durationMonths),
     bonus_months: Number(p.bonusMonths),
+    total_redeemable: p.totalRedeemable ? Number(p.totalRedeemable) : null,
     description: p.description || null,
     is_active: p.isActive,
   }
@@ -293,6 +309,278 @@ export async function addKittyPayment(memberId, month, amount, note) {
 
 export async function deleteKittyMember(id) {
   await request(`/api/kitty/members/${id}`, { method: 'DELETE' })
+}
+
+// ─── Enhanced Kitty Admin APIs ─────────────────────────────────────────────
+
+// Enrollment transformers
+function enrollmentFromApi(e) {
+  return {
+    id: e.id,
+    enrollmentCode: e.enrollment_code,
+    planId: e.plan_id,
+    userEmail: e.user_email,
+    userName: e.user_name,
+    userPhone: e.user_phone ?? '',
+    status: e.status,
+    startDate: e.start_date,
+    totalInstallments: e.total_installments,
+    installmentsPaid: e.installments_paid ?? 0,
+    installmentsPending: e.installments_pending,
+    amountPaid: e.amount_paid ?? 0,
+    remainingAmount: e.remaining_amount,
+    totalRedeemable: e.total_redeemable,
+    nextDueDate: e.next_due_date,
+    totalWithdrawn: e.total_withdrawn ?? 0,
+    approvalDate: e.approval_date,
+    approvedBy: e.approved_by,
+    rejectionReason: e.rejection_reason,
+    notes: e.notes ?? '',
+    createdAt: e.created_at,
+    plan: e.plan ? kittyPlanFromApi(e.plan) : null,
+    installments: (e.installments ?? []).map(installmentFromApi),
+    withdrawals: (e.withdrawals ?? []).map(withdrawalFromApi),
+    ledger: e.ledger ?? [],
+  }
+}
+
+function installmentFromApi(i) {
+  return {
+    id: i.id,
+    enrollmentId: i.enrollment_id,
+    installmentNumber: i.installment_number,
+    dueDate: i.due_date,
+    amountDue: i.amount_due,
+    amountPaid: i.amount_paid,
+    paymentDate: i.payment_date,
+    paymentMethod: i.payment_method ?? 'cash',
+    referenceNumber: i.reference_number ?? '',
+    receiptUrl: i.receipt_url,
+    status: i.status,
+    remarks: i.remarks ?? '',
+    recordedBy: i.recorded_by ?? '',
+    createdAt: i.created_at,
+  }
+}
+
+function withdrawalFromApi(w) {
+  return {
+    id: w.id,
+    enrollmentId: w.enrollment_id,
+    withdrawalCode: w.withdrawal_code,
+    amount: w.amount,
+    withdrawalType: w.withdrawal_type,
+    principalAmount: w.principal_amount,
+    bonusAmount: w.bonus_amount,
+    deductions: w.deductions,
+    netAmount: w.net_amount,
+    status: w.status,
+    releaseDate: w.release_date,
+    transactionReference: w.transaction_reference ?? '',
+    supportingDocuments: w.supporting_documents ?? [],
+    adminNotes: w.admin_notes ?? '',
+    approvedBy: w.approved_by,
+    createdBy: w.created_by ?? '',
+    createdAt: w.created_at,
+  }
+}
+
+// Admin Plan APIs (new endpoints)
+export async function getAdminKittyPlans(includeInactive = true) {
+  const list = await request(`/api/admin/kitty/plans?include_inactive=${includeInactive}`)
+  return list.map(kittyPlanFromApi)
+}
+
+export async function createAdminKittyPlan(plan) {
+  const p = await request('/api/admin/kitty/plans', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: plan.name,
+      monthly_amount: Number(plan.monthlyAmount),
+      duration_months: Number(plan.durationMonths),
+      bonus_months: Number(plan.bonusMonths),
+      description: plan.description || '',
+      joining_fee: Number(plan.joiningFee || 0),
+      processing_fee: Number(plan.processingFee || 0),
+      late_fee: Number(plan.lateFee || 0),
+      start_date: plan.startDate || null,
+      end_date: plan.endDate || null,
+      status: plan.status || 'active',
+      is_active: plan.isActive !== false,
+      terms_conditions: plan.termsConditions || '',
+    }),
+  })
+  return kittyPlanFromApi(p)
+}
+
+export async function updateAdminKittyPlan(id, plan) {
+  const payload = {}
+  if (plan.name !== undefined) payload.name = plan.name
+  if (plan.monthlyAmount !== undefined) payload.monthly_amount = Number(plan.monthlyAmount)
+  if (plan.durationMonths !== undefined) payload.duration_months = Number(plan.durationMonths)
+  if (plan.bonusMonths !== undefined) payload.bonus_months = Number(plan.bonusMonths)
+  if (plan.description !== undefined) payload.description = plan.description || ''
+  if (plan.isActive !== undefined) payload.is_active = plan.isActive
+  if (plan.status !== undefined) payload.status = plan.status
+  if (plan.joiningFee !== undefined) payload.joining_fee = Number(plan.joiningFee || 0)
+  if (plan.processingFee !== undefined) payload.processing_fee = Number(plan.processingFee || 0)
+  if (plan.lateFee !== undefined) payload.late_fee = Number(plan.lateFee || 0)
+  if (plan.termsConditions !== undefined) payload.terms_conditions = plan.termsConditions || ''
+  
+  const p = await request(`/api/admin/kitty/plans/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+  return kittyPlanFromApi(p)
+}
+
+export async function deleteAdminKittyPlan(id) {
+  await request(`/api/admin/kitty/plans/${id}`, { method: 'DELETE' })
+}
+
+// Admin Enrollment APIs
+export async function getAdminEnrollments(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.status) params.append('status', filters.status)
+  if (filters.userEmail) params.append('user_email', filters.userEmail)
+  if (filters.planId) params.append('plan_id', filters.planId)
+  const list = await request(`/api/admin/kitty/enrollments?${params.toString()}`)
+  return list.map(enrollmentFromApi)
+}
+
+export async function getAdminEnrollmentStats() {
+  return request('/api/admin/kitty/enrollments/stats')
+}
+
+export async function getAdminEnrollmentDetail(id) {
+  const e = await request(`/api/admin/kitty/enrollments/${id}`)
+  return enrollmentFromApi(e)
+}
+
+export async function approveEnrollment(id, startDate = null) {
+  const e = await request(`/api/admin/kitty/enrollments/${id}/approve`, {
+    method: 'PUT',
+    body: JSON.stringify({ start_date: startDate }),
+  })
+  return enrollmentFromApi(e)
+}
+
+export async function rejectEnrollment(id, reason) {
+  const e = await request(`/api/admin/kitty/enrollments/${id}/reject`, {
+    method: 'PUT',
+    body: JSON.stringify({ reason }),
+  })
+  return enrollmentFromApi(e)
+}
+
+export async function cancelEnrollment(id, reason) {
+  const e = await request(`/api/admin/kitty/enrollments/${id}/cancel`, {
+    method: 'PUT',
+    body: JSON.stringify({ reason }),
+  })
+  return enrollmentFromApi(e)
+}
+
+// Admin Installment APIs
+export async function getAdminInstallments(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.enrollmentId) params.append('enrollment_id', filters.enrollmentId)
+  if (filters.status) params.append('status', filters.status)
+  const list = await request(`/api/admin/kitty/installments?${params.toString()}`)
+  return list.map(installmentFromApi)
+}
+
+export async function createInstallment(data) {
+  const i = await request('/api/admin/kitty/installments', {
+    method: 'POST',
+    body: JSON.stringify({
+      enrollment_id: data.enrollmentId,
+      due_date: data.dueDate || null,
+      amount_due: data.amountDue || null,
+      amount_paid: data.amountPaid || null,
+      payment_date: data.paymentDate || null,
+      payment_method: data.paymentMethod || 'cash',
+      reference_number: data.referenceNumber || '',
+      receipt_url: data.receiptUrl || null,
+      remarks: data.remarks || '',
+      status: data.status || 'paid',
+    }),
+  })
+  return installmentFromApi(i)
+}
+
+export async function updateInstallment(id, data) {
+  const payload = {}
+  if (data.dueDate !== undefined) payload.due_date = data.dueDate
+  if (data.amountDue !== undefined) payload.amount_due = data.amountDue
+  if (data.amountPaid !== undefined) payload.amount_paid = data.amountPaid
+  if (data.paymentDate !== undefined) payload.payment_date = data.paymentDate
+  if (data.paymentMethod !== undefined) payload.payment_method = data.paymentMethod
+  if (data.referenceNumber !== undefined) payload.reference_number = data.referenceNumber
+  if (data.receiptUrl !== undefined) payload.receipt_url = data.receiptUrl
+  if (data.remarks !== undefined) payload.remarks = data.remarks
+  if (data.status !== undefined) payload.status = data.status
+  
+  const i = await request(`/api/admin/kitty/installments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+  return installmentFromApi(i)
+}
+
+// Admin Withdrawal APIs
+export async function getAdminWithdrawals(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.enrollmentId) params.append('enrollment_id', filters.enrollmentId)
+  if (filters.status) params.append('status', filters.status)
+  const list = await request(`/api/admin/kitty/withdrawals?${params.toString()}`)
+  return list.map(withdrawalFromApi)
+}
+
+export async function createWithdrawal(data) {
+  const w = await request('/api/admin/kitty/withdrawals', {
+    method: 'POST',
+    body: JSON.stringify({
+      enrollment_id: data.enrollmentId,
+      amount: data.amount || null,
+      withdrawal_type: data.withdrawalType || 'full',
+      principal_amount: data.principalAmount || 0,
+      bonus_amount: data.bonusAmount || 0,
+      deductions: data.deductions || 0,
+      transaction_reference: data.transactionReference || '',
+      admin_notes: data.adminNotes || '',
+    }),
+  })
+  return withdrawalFromApi(w)
+}
+
+export async function updateWithdrawalStatus(id, status, opts = {}) {
+  const w = await request(`/api/admin/kitty/withdrawals/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      status,
+      transaction_reference: opts.transactionReference || null,
+      admin_notes: opts.adminNotes || null,
+    }),
+  })
+  return withdrawalFromApi(w)
+}
+
+// Admin Ledger APIs
+export async function getAdminLedger(enrollmentId) {
+  return request(`/api/admin/kitty/ledger/${enrollmentId}`)
+}
+
+export async function addLedgerAdjustment(data) {
+  return request('/api/admin/kitty/ledger/adjustment', {
+    method: 'POST',
+    body: JSON.stringify({
+      enrollment_id: data.enrollmentId,
+      amount: data.amount,
+      description: data.description,
+      transaction_type: data.transactionType || 'adjustment',
+    }),
+  })
 }
 
 /** Upload one product image; returns public path e.g. /uploads/products/….jpg (dev: proxied to API). */

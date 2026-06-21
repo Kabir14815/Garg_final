@@ -937,3 +937,220 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Enhanced Kitty Components ────────────────────────────────────────────── */
+
+.kitty-stats {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.kitty-stat-pending .kitty-stat-value {
+  color: #b45309;
+}
+
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #dc2626;
+  color: white;
+  border-radius: 99px;
+  margin-left: 0.35rem;
+}
+
+.td-code {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.td-amount {
+  font-weight: 600;
+  color: var(--gold-dark);
+}
+
+/* Modal enhancements */
+.modal-wide {
+  max-width: 520px;
+}
+
+.modal-info {
+  font-size: 0.85rem;
+  color: var(--charcoal);
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(200, 160, 60, 0.08);
+  border-radius: 6px;
+}
+
+/* Enrollment detail grid */
+.enrollment-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: var(--bg-cream);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detail-item.detail-full {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  color: var(--charcoal);
+}
+
+/* Approval tabs */
+.approval-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.approval-tab {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-cream);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.approval-tab:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.approval-tab:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.approval-tab.active {
+  background: var(--charcoal);
+  color: var(--text-on-dark);
+  border-color: var(--charcoal);
+}
+
+.approval-tab.tab-reject.active {
+  background: #b54;
+  border-color: #b54;
+}
+
+.approval-form {
+  margin-top: 1rem;
+}
+
+/* Withdrawal summary */
+.withdrawal-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(200, 160, 60, 0.08);
+  border: 1px solid rgba(200, 160, 60, 0.2);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.withdrawal-summary span {
+  font-size: 0.9rem;
+  color: var(--charcoal);
+}
+
+.net-amount {
+  font-size: 1.3rem;
+  font-family: var(--font-serif);
+  color: var(--gold-dark);
+}
+
+/* Release date display */
+.release-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Status badge additions */
+.status-pending {
+  background: rgba(180, 83, 9, 0.1);
+  color: #b45309;
+}
+
+.status-rejected {
+  background: rgba(181, 68, 68, 0.1);
+  color: #b54;
+}
+
+.status-released {
+  background: rgba(26, 122, 74, 0.1);
+  color: #155e3a;
+}
+
+/* Button additions */
+.btn-primary.btn-success {
+  background: #1a7a4a;
+}
+
+.btn-primary.btn-success:hover:not(:disabled) {
+  background: #155e3a;
+}
+
+.btn-primary.btn-danger {
+  background: #b54;
+}
+
+.btn-primary.btn-danger:hover:not(:disabled) {
+  background: #993b3b;
+}
+
+/* Responsive for enhanced stats */
+@media (max-width: 900px) {
+  .kitty-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .kitty-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .enrollment-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .approval-tabs {
+    flex-direction: column;
+  }
+  
+  .approval-tab:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .approval-tab:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+}

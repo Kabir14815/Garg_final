@@ -3,8 +3,9 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.database import Database
+from pymongo.collection import Collection
 
 # Load backend/.env regardless of current working directory (uvicorn, tests, scripts).
 _backend_dir = Path(__file__).resolve().parent
@@ -16,6 +17,7 @@ URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGODB_DB_NAME", "garg")
 
 _client: MongoClient | None = None
+_indexes_created = False
 
 
 def get_client() -> MongoClient:
@@ -27,3 +29,108 @@ def get_client() -> MongoClient:
 
 def get_db() -> Database:
     return get_client()[DB_NAME]
+
+
+# ─── Collection Helpers ───────────────────────────────────────────────────────
+
+def get_users_collection() -> Collection:
+    return get_db()["users"]
+
+
+def get_products_collection() -> Collection:
+    return get_db()["products"]
+
+
+def get_kitty_plans_collection() -> Collection:
+    return get_db()["kitty_plans"]
+
+
+def get_kitty_enrollments_collection() -> Collection:
+    return get_db()["kitty_enrollments"]
+
+
+def get_kitty_installments_collection() -> Collection:
+    return get_db()["kitty_installments"]
+
+
+def get_kitty_withdrawals_collection() -> Collection:
+    return get_db()["kitty_withdrawals"]
+
+
+def get_kitty_ledger_collection() -> Collection:
+    return get_db()["kitty_ledger"]
+
+
+def get_email_otp_collection() -> Collection:
+    return get_db()["email_otp"]
+
+
+def get_audit_logs_collection() -> Collection:
+    return get_db()["audit_logs"]
+
+
+# ─── Index Setup ──────────────────────────────────────────────────────────────
+
+def ensure_indexes():
+    """Create indexes for all collections. Safe to call multiple times."""
+    global _indexes_created
+    if _indexes_created:
+        return
+    
+    try:
+        db = get_db()
+        
+        # Users collection
+        db["users"].create_index("email", unique=True)
+        
+        # Products collection
+        db["products"].create_index("category")
+        db["products"].create_index("created_at")
+        
+        # Kitty Plans
+        db["kitty_plans"].create_index("plan_code", unique=True, sparse=True)
+        db["kitty_plans"].create_index("status")
+        db["kitty_plans"].create_index("is_active")
+        db["kitty_plans"].create_index("created_at")
+        
+        # Kitty Enrollments
+        db["kitty_enrollments"].create_index("enrollment_code", unique=True, sparse=True)
+        db["kitty_enrollments"].create_index("plan_id")
+        db["kitty_enrollments"].create_index("user_email")
+        db["kitty_enrollments"].create_index("status")
+        db["kitty_enrollments"].create_index("created_at")
+        db["kitty_enrollments"].create_index([("user_email", ASCENDING), ("status", ASCENDING)])
+        
+        # Kitty Installments
+        db["kitty_installments"].create_index("enrollment_id")
+        db["kitty_installments"].create_index("status")
+        db["kitty_installments"].create_index("due_date")
+        db["kitty_installments"].create_index([("enrollment_id", ASCENDING), ("installment_number", ASCENDING)])
+        
+        # Kitty Withdrawals
+        db["kitty_withdrawals"].create_index("enrollment_id")
+        db["kitty_withdrawals"].create_index("withdrawal_code", unique=True, sparse=True)
+        db["kitty_withdrawals"].create_index("status")
+        db["kitty_withdrawals"].create_index("created_at")
+        
+        # Kitty Ledger
+        db["kitty_ledger"].create_index("enrollment_id")
+        db["kitty_ledger"].create_index("transaction_type")
+        db["kitty_ledger"].create_index("created_at")
+        db["kitty_ledger"].create_index([("enrollment_id", ASCENDING), ("created_at", DESCENDING)])
+        
+        # Email OTP - TTL index for auto-expiry
+        db["email_otp"].create_index("email", unique=True)
+        db["email_otp"].create_index("expires_at", expireAfterSeconds=0)
+        
+        # Audit Logs
+        db["audit_logs"].create_index("entity_type")
+        db["audit_logs"].create_index("entity_id")
+        db["audit_logs"].create_index("action")
+        db["audit_logs"].create_index("performed_by")
+        db["audit_logs"].create_index("created_at")
+        
+        _indexes_created = True
+        print("✓ MongoDB indexes created/verified")
+    except Exception as e:
+        print(f"⚠ Failed to create indexes: {e}")

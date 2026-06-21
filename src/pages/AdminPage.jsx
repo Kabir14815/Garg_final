@@ -17,6 +17,17 @@ import {
   updateKittyMember,
   addKittyPayment,
   deleteKittyMember,
+  getAdminEnrollments,
+  getAdminEnrollmentStats,
+  getAdminEnrollmentDetail,
+  approveEnrollment,
+  rejectEnrollment,
+  cancelEnrollment,
+  createInstallment,
+  updateInstallment,
+  createWithdrawal,
+  updateWithdrawalStatus,
+  getAdminWithdrawals,
 } from '../api/client'
 import { useMetalRates } from '../context/MetalRatesContext'
 import { useAuth } from '../context/AuthContext'
@@ -199,6 +210,7 @@ const emptyPlan = {
   monthlyAmount: '',
   durationMonths: 11,
   bonusMonths: 1,
+  totalRedeemable: '',
   description: '',
   isActive: true,
 }
@@ -209,7 +221,7 @@ function KittyPlanForm({ title, initial, onSave, onCancel }) {
   const [err, setErr] = useState(null)
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
 
-  const totalRedeemable = (Number(form.monthlyAmount) || 0) * ((Number(form.durationMonths) || 0) + (Number(form.bonusMonths) || 0))
+  const suggestedRedeemable = (Number(form.monthlyAmount) || 0) * ((Number(form.durationMonths) || 0) + (Number(form.bonusMonths) || 0))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -221,6 +233,7 @@ function KittyPlanForm({ title, initial, onSave, onCancel }) {
         monthlyAmount: Number(form.monthlyAmount),
         durationMonths: Number(form.durationMonths),
         bonusMonths: Number(form.bonusMonths),
+        totalRedeemable: Number(form.totalRedeemable) || suggestedRedeemable,
       })
     } catch (e) {
       setErr(e.message || 'Save failed')
@@ -250,9 +263,21 @@ function KittyPlanForm({ title, initial, onSave, onCancel }) {
           <input type="number" min="0" max="12" value={form.bonusMonths} onChange={(e) => set('bonusMonths', e.target.value)} />
         </div>
       </div>
-      <div className="kitty-plan-preview">
-        <span>Total redeemable:</span>
-        <strong>₹{totalRedeemable.toLocaleString('en-IN')}</strong>
+      <div className="form-row">
+        <label>Total redeemable (₹)</label>
+        <input 
+          type="number" 
+          min="1" 
+          value={form.totalRedeemable} 
+          onChange={(e) => set('totalRedeemable', e.target.value)} 
+          placeholder={`Suggested: ₹${suggestedRedeemable.toLocaleString('en-IN')}`}
+          required 
+        />
+        {suggestedRedeemable > 0 && (
+          <small style={{ color: '#888', marginTop: '4px', display: 'block' }}>
+            Calculated: ₹{suggestedRedeemable.toLocaleString('en-IN')} (monthly × total months)
+          </small>
+        )}
       </div>
       <div className="form-row">
         <label>Description (optional)</label>
@@ -404,6 +429,413 @@ function StatusBadge({ status }) {
   return <span className={`status-badge status-${status}`}>{status}</span>
 }
 
+// ─── Approval Modal ───────────────────────────────────────────────────────────
+
+function ApprovalModal({ enrollment, onClose, onApprove, onReject }) {
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
+  const [rejectReason, setRejectReason] = useState('')
+  const [mode, setMode] = useState('approve')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+
+  const handleApprove = async () => {
+    setSaving(true)
+    setErr(null)
+    try {
+      await onApprove(enrollment.id, startDate)
+      onClose()
+    } catch (e) {
+      setErr(e.message || 'Failed to approve')
+      setSaving(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      setErr('Please provide a rejection reason')
+      return
+    }
+    setSaving(true)
+    setErr(null)
+    try {
+      await onReject(enrollment.id, rejectReason)
+      onClose()
+    } catch (e) {
+      setErr(e.message || 'Failed to reject')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card modal-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Enrollment Request</h3>
+          <button className="modal-close" onClick={onClose} type="button">✕</button>
+        </div>
+        
+        <div className="enrollment-detail-grid">
+          <div className="detail-item">
+            <span className="detail-label">Enrollment Code</span>
+            <span className="detail-value">{enrollment.enrollmentCode}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Customer Name</span>
+            <span className="detail-value">{enrollment.userName}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Email</span>
+            <span className="detail-value">{enrollment.userEmail}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Phone</span>
+            <span className="detail-value">{enrollment.userPhone || '—'}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">Requested On</span>
+            <span className="detail-value">{enrollment.createdAt?.slice(0, 10) || '—'}</span>
+          </div>
+          {enrollment.notes && (
+            <div className="detail-item detail-full">
+              <span className="detail-label">Notes</span>
+              <span className="detail-value">{enrollment.notes}</span>
+            </div>
+          )}
+        </div>
+
+        {err && <p className="admin-error">{err}</p>}
+
+        <div className="approval-tabs">
+          <button 
+            type="button" 
+            className={`approval-tab ${mode === 'approve' ? 'active' : ''}`}
+            onClick={() => setMode('approve')}
+          >
+            Approve
+          </button>
+          <button 
+            type="button" 
+            className={`approval-tab tab-reject ${mode === 'reject' ? 'active' : ''}`}
+            onClick={() => setMode('reject')}
+          >
+            Reject
+          </button>
+        </div>
+
+        {mode === 'approve' && (
+          <div className="approval-form">
+            <div className="form-row">
+              <label>Start Date</label>
+              <input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+              />
+            </div>
+            <div className="form-actions">
+              <button 
+                type="button" 
+                className="btn-primary btn-success" 
+                onClick={handleApprove}
+                disabled={saving}
+              >
+                {saving ? 'Approving…' : 'Approve Enrollment'}
+              </button>
+              <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {mode === 'reject' && (
+          <div className="approval-form">
+            <div className="form-row">
+              <label>Rejection Reason</label>
+              <textarea 
+                rows={3} 
+                value={rejectReason} 
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Explain why this enrollment is being rejected…"
+              />
+            </div>
+            <div className="form-actions">
+              <button 
+                type="button" 
+                className="btn-primary btn-danger" 
+                onClick={handleReject}
+                disabled={saving}
+              >
+                {saving ? 'Rejecting…' : 'Reject Enrollment'}
+              </button>
+              <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Installment Modal ────────────────────────────────────────────────────────
+
+function InstallmentModal({ enrollment, plan, onClose, onSave }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [form, setForm] = useState({
+    amountPaid: plan?.monthlyAmount || '',
+    paymentDate: today,
+    paymentMethod: 'cash',
+    referenceNumber: '',
+    remarks: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+  
+  const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setErr(null)
+    try {
+      await onSave({
+        enrollmentId: enrollment.id,
+        amountPaid: Number(form.amountPaid) || 0,
+        paymentDate: form.paymentDate,
+        paymentMethod: form.paymentMethod,
+        referenceNumber: form.referenceNumber,
+        remarks: form.remarks,
+        status: 'paid',
+      })
+      onClose()
+    } catch (e) {
+      setErr(e.message || 'Failed to record installment')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Record Installment</h3>
+          <button className="modal-close" onClick={onClose} type="button">✕</button>
+        </div>
+        <p className="modal-subtitle">{enrollment.userName} — {plan?.name}</p>
+        <p className="modal-info">
+          Installment #{enrollment.installmentsPaid + 1} of {enrollment.totalInstallments}
+        </p>
+        {err && <p className="admin-error">{err}</p>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid-2">
+            <div className="form-row">
+              <label>Amount (₹)</label>
+              <input 
+                type="number" 
+                min="1" 
+                value={form.amountPaid} 
+                onChange={(e) => set('amountPaid', e.target.value)} 
+                required 
+              />
+            </div>
+            <div className="form-row">
+              <label>Payment Date</label>
+              <input 
+                type="date" 
+                value={form.paymentDate} 
+                onChange={(e) => set('paymentDate', e.target.value)} 
+                required 
+              />
+            </div>
+            <div className="form-row">
+              <label>Payment Method</label>
+              <select value={form.paymentMethod} onChange={(e) => set('paymentMethod', e.target.value)}>
+                <option value="cash">Cash</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cheque">Cheque</option>
+                <option value="card">Card</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="form-row">
+              <label>Reference Number</label>
+              <input 
+                value={form.referenceNumber} 
+                onChange={(e) => set('referenceNumber', e.target.value)} 
+                placeholder="Transaction ID / Cheque No."
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <label>Remarks (optional)</label>
+            <input 
+              value={form.remarks} 
+              onChange={(e) => set('remarks', e.target.value)} 
+              placeholder="Any notes about this payment"
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Record Installment'}
+            </button>
+            <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Withdrawal Modal ─────────────────────────────────────────────────────────
+
+function WithdrawalModal({ enrollment, plan, onClose, onSave }) {
+  const totalSaved = enrollment.amountPaid || 0
+  const bonus = plan ? (plan.monthlyAmount * plan.bonusMonths) : 0
+  
+  const [form, setForm] = useState({
+    withdrawalType: 'full',
+    principalAmount: totalSaved,
+    bonusAmount: bonus,
+    deductions: 0,
+    transactionReference: '',
+    adminNotes: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+  
+  const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
+  const netAmount = (Number(form.principalAmount) || 0) + (Number(form.bonusAmount) || 0) - (Number(form.deductions) || 0)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setErr(null)
+    try {
+      await onSave({
+        enrollmentId: enrollment.id,
+        withdrawalType: form.withdrawalType,
+        principalAmount: Number(form.principalAmount) || 0,
+        bonusAmount: Number(form.bonusAmount) || 0,
+        deductions: Number(form.deductions) || 0,
+        transactionReference: form.transactionReference,
+        adminNotes: form.adminNotes,
+      })
+      onClose()
+    } catch (e) {
+      setErr(e.message || 'Failed to create withdrawal')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card modal-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Create Withdrawal / Payout</h3>
+          <button className="modal-close" onClick={onClose} type="button">✕</button>
+        </div>
+        <p className="modal-subtitle">{enrollment.userName} — {plan?.name}</p>
+        {err && <p className="admin-error">{err}</p>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid-2">
+            <div className="form-row">
+              <label>Withdrawal Type</label>
+              <select value={form.withdrawalType} onChange={(e) => set('withdrawalType', e.target.value)}>
+                <option value="full">Full Redemption</option>
+                <option value="partial">Partial Withdrawal</option>
+                <option value="closure">Early Closure</option>
+              </select>
+            </div>
+            <div className="form-row">
+              <label>Principal Amount (₹)</label>
+              <input 
+                type="number" 
+                min="0" 
+                value={form.principalAmount} 
+                onChange={(e) => set('principalAmount', e.target.value)} 
+              />
+            </div>
+            <div className="form-row">
+              <label>Bonus Amount (₹)</label>
+              <input 
+                type="number" 
+                min="0" 
+                value={form.bonusAmount} 
+                onChange={(e) => set('bonusAmount', e.target.value)} 
+              />
+            </div>
+            <div className="form-row">
+              <label>Deductions (₹)</label>
+              <input 
+                type="number" 
+                min="0" 
+                value={form.deductions} 
+                onChange={(e) => set('deductions', e.target.value)} 
+              />
+            </div>
+          </div>
+          <div className="withdrawal-summary">
+            <span>Net Payout Amount:</span>
+            <strong className="net-amount">₹{netAmount.toLocaleString('en-IN')}</strong>
+          </div>
+          <div className="form-row">
+            <label>Transaction Reference (optional)</label>
+            <input 
+              value={form.transactionReference} 
+              onChange={(e) => set('transactionReference', e.target.value)} 
+              placeholder="Payment reference / ID"
+            />
+          </div>
+          <div className="form-row">
+            <label>Admin Notes (optional)</label>
+            <textarea 
+              rows={2} 
+              value={form.adminNotes} 
+              onChange={(e) => set('adminNotes', e.target.value)} 
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Creating…' : 'Create Withdrawal'}
+            </button>
+            <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Enhanced Kitty Stats ─────────────────────────────────────────────────────
+
+function EnhancedKittyStats({ stats }) {
+  if (!stats) return null
+  
+  return (
+    <div className="kitty-stats">
+      <div className="kitty-stat-card kitty-stat-pending">
+        <div className="kitty-stat-value">{stats.pending || 0}</div>
+        <div className="kitty-stat-label">Pending Approvals</div>
+      </div>
+      <div className="kitty-stat-card kitty-stat-active">
+        <div className="kitty-stat-value">{stats.active || 0}</div>
+        <div className="kitty-stat-label">Active</div>
+      </div>
+      <div className="kitty-stat-card kitty-stat-completed">
+        <div className="kitty-stat-value">{stats.completed || 0}</div>
+        <div className="kitty-stat-label">Completed</div>
+      </div>
+      <div className="kitty-stat-card kitty-stat-savings">
+        <div className="kitty-stat-value">₹{(stats.total_collected || 0).toLocaleString('en-IN')}</div>
+        <div className="kitty-stat-label">Total Collected</div>
+      </div>
+      <div className="kitty-stat-card">
+        <div className="kitty-stat-value">₹{(stats.total_withdrawn || 0).toLocaleString('en-IN')}</div>
+        <div className="kitty-stat-label">Total Withdrawn</div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Payment Progress Bar ─────────────────────────────────────────────────────
 
 function PaymentProgress({ paid, total }) {
@@ -471,17 +903,23 @@ export default function AdminPage() {
   const [ratesMessage, setRatesMessage] = useState('')
 
   // ── Kitty ──
-  const [kittyTab, setKittyTab] = useState('members')
+  const [kittyTab, setKittyTab] = useState('pending')
   const [kittyPlans, setKittyPlans] = useState([])
   const [kittyMembers, setKittyMembers] = useState([])
+  const [kittyEnrollments, setKittyEnrollments] = useState([])
+  const [kittyStats, setKittyStats] = useState(null)
+  const [kittyWithdrawals, setKittyWithdrawals] = useState([])
   const [kittyLoading, setKittyLoading] = useState(false)
   const [kittyError, setKittyError] = useState(null)
-  const [kittyFormMode, setKittyFormMode] = useState(null) // null | 'addPlan' | 'editPlan' | 'addMember' | 'editMember'
+  const [kittyFormMode, setKittyFormMode] = useState(null)
   const [editingPlan, setEditingPlan] = useState(null)
   const [editingMember, setEditingMember] = useState(null)
   const [paymentTarget, setPaymentTarget] = useState(null)
   const [kittyDeleteConfirm, setKittyDeleteConfirm] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [approvalTarget, setApprovalTarget] = useState(null)
+  const [installmentTarget, setInstallmentTarget] = useState(null)
+  const [withdrawalTarget, setWithdrawalTarget] = useState(null)
 
   // ── Load products ──
   const loadProducts = useCallback(() => {
@@ -498,8 +936,20 @@ export default function AdminPage() {
   const loadKitty = useCallback(() => {
     setKittyLoading(true)
     setKittyError(null)
-    Promise.all([getKittyPlans(), getKittyMembers()])
-      .then(([plans, members]) => { setKittyPlans(plans); setKittyMembers(members) })
+    Promise.all([
+      getKittyPlans(),
+      getKittyMembers(),
+      getAdminEnrollments(),
+      getAdminEnrollmentStats(),
+      getAdminWithdrawals(),
+    ])
+      .then(([plans, members, enrollments, stats, withdrawals]) => {
+        setKittyPlans(plans)
+        setKittyMembers(members)
+        setKittyEnrollments(enrollments)
+        setKittyStats(stats)
+        setKittyWithdrawals(withdrawals)
+      })
       .catch((e) => setKittyError(e.message || 'Failed to load kitty data'))
       .finally(() => setKittyLoading(false))
   }, [])
@@ -616,9 +1066,56 @@ export default function AdminPage() {
     }
   }
 
+  // ── Enhanced enrollment handlers ──
+  const handleApproveEnrollment = async (id, startDate) => {
+    await approveEnrollment(id, startDate)
+    loadKitty()
+  }
+
+  const handleRejectEnrollment = async (id, reason) => {
+    await rejectEnrollment(id, reason)
+    loadKitty()
+  }
+
+  const handleCancelEnrollment = async (enrollment) => {
+    const reason = prompt('Reason for cancellation:')
+    if (reason === null) return
+    try {
+      await cancelEnrollment(enrollment.id, reason || 'Cancelled by admin')
+      loadKitty()
+    } catch (err) {
+      setKittyError(err.message || 'Cancel failed')
+    }
+  }
+
+  const handleCreateInstallment = async (data) => {
+    await createInstallment(data)
+    loadKitty()
+  }
+
+  const handleCreateWithdrawal = async (data) => {
+    await createWithdrawal(data)
+    loadKitty()
+  }
+
+  const handleReleaseWithdrawal = async (withdrawal) => {
+    const ref = prompt('Transaction reference (optional):')
+    if (ref === null) return
+    try {
+      await updateWithdrawalStatus(withdrawal.id, 'released', { transactionReference: ref })
+      loadKitty()
+    } catch (err) {
+      setKittyError(err.message || 'Failed to release withdrawal')
+    }
+  }
+
   const filteredMembers = statusFilter === 'all'
     ? kittyMembers
     : kittyMembers.filter((m) => m.status === statusFilter)
+
+  const pendingEnrollments = kittyEnrollments.filter((e) => e.status === 'pending')
+  const activeEnrollments = kittyEnrollments.filter((e) => e.status === 'active')
+  const pendingWithdrawals = kittyWithdrawals.filter((w) => w.status === 'pending')
 
   // ── Render ──
   return (
@@ -832,7 +1329,7 @@ export default function AdminPage() {
           <div className="admin-section-header">
             <div>
               <h2>Kitty Savings Scheme</h2>
-              <p className="admin-section-sub">Manage monthly savings plans and enrolled customers.</p>
+              <p className="admin-section-sub">Manage savings plans, enrollments, installments, and withdrawals.</p>
             </div>
           </div>
 
@@ -841,17 +1338,233 @@ export default function AdminPage() {
 
           {!kittyLoading && (
             <>
-              <KittyStats members={kittyMembers} plans={kittyPlans} />
+              <EnhancedKittyStats stats={kittyStats} />
 
               {/* Kitty sub-tabs */}
               <nav className="admin-sub-tabs">
+                <button type="button" className={kittyTab === 'pending' ? 'active' : ''} onClick={() => setKittyTab('pending')}>
+                  Pending Approvals {pendingEnrollments.length > 0 && <span className="badge-count">{pendingEnrollments.length}</span>}
+                </button>
+                <button type="button" className={kittyTab === 'enrollments' ? 'active' : ''} onClick={() => setKittyTab('enrollments')}>
+                  Enrollments ({kittyEnrollments.length})
+                </button>
+                <button type="button" className={kittyTab === 'withdrawals' ? 'active' : ''} onClick={() => setKittyTab('withdrawals')}>
+                  Withdrawals {pendingWithdrawals.length > 0 && <span className="badge-count">{pendingWithdrawals.length}</span>}
+                </button>
                 <button type="button" className={kittyTab === 'members' ? 'active' : ''} onClick={() => setKittyTab('members')}>
-                  Members ({kittyMembers.length})
+                  Legacy Members ({kittyMembers.length})
                 </button>
                 <button type="button" className={kittyTab === 'plans' ? 'active' : ''} onClick={() => setKittyTab('plans')}>
                   Plans ({kittyPlans.length})
                 </button>
               </nav>
+
+              {/* ─ Pending Approvals sub-tab ─ */}
+              {kittyTab === 'pending' && (
+                <div>
+                  <div className="kitty-sub-header">
+                    <h3>Enrollment Requests Awaiting Approval</h3>
+                  </div>
+                  
+                  {pendingEnrollments.length === 0 ? (
+                    <div className="admin-empty">No pending enrollment requests.</div>
+                  ) : (
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Code</th>
+                            <th>Customer</th>
+                            <th>Plan</th>
+                            <th>Requested</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingEnrollments.map((e) => {
+                            const plan = kittyPlans.find((p) => p.id === e.planId)
+                            return (
+                              <tr key={e.id}>
+                                <td className="td-code">{e.enrollmentCode}</td>
+                                <td>
+                                  <div className="member-name">{e.userName}</div>
+                                  <div className="member-contact">{e.userEmail}</div>
+                                </td>
+                                <td>
+                                  <div>{plan?.name || '—'}</div>
+                                  {plan && <div className="member-plan-amount">₹{plan.monthlyAmount.toLocaleString('en-IN')}/mo</div>}
+                                </td>
+                                <td>{e.createdAt?.slice(0, 10) || '—'}</td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="btn-sm btn-success"
+                                    onClick={() => setApprovalTarget(e)}
+                                  >
+                                    Review
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─ Enrollments sub-tab ─ */}
+              {kittyTab === 'enrollments' && (
+                <div>
+                  <div className="kitty-sub-header">
+                    <div className="kitty-filters">
+                      {['all', 'active', 'completed', 'cancelled', 'rejected'].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className={`filter-pill ${statusFilter === s ? 'active' : ''}`}
+                          onClick={() => setStatusFilter(s)}
+                        >
+                          {s.charAt(0).toUpperCase() + s.slice(1)}
+                          <span className="filter-count">
+                            {s === 'all' ? kittyEnrollments.length : kittyEnrollments.filter((e) => e.status === s).length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(statusFilter === 'all' ? kittyEnrollments : kittyEnrollments.filter((e) => e.status === statusFilter)).length === 0 ? (
+                    <div className="admin-empty">No enrollments found.</div>
+                  ) : (
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Code</th>
+                            <th>Customer</th>
+                            <th>Plan</th>
+                            <th>Progress</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(statusFilter === 'all' ? kittyEnrollments : kittyEnrollments.filter((e) => e.status === statusFilter)).map((e) => {
+                            const plan = kittyPlans.find((p) => p.id === e.planId)
+                            return (
+                              <tr key={e.id}>
+                                <td className="td-code">{e.enrollmentCode}</td>
+                                <td>
+                                  <div className="member-name">{e.userName}</div>
+                                  <div className="member-contact">{e.userEmail}</div>
+                                </td>
+                                <td>{plan?.name || '—'}</td>
+                                <td>
+                                  <PaymentProgress paid={e.installmentsPaid} total={e.totalInstallments} />
+                                </td>
+                                <td>
+                                  <div>Paid: ₹{(e.amountPaid || 0).toLocaleString('en-IN')}</div>
+                                  <div className="member-plan-amount">Remaining: ₹{(e.remainingAmount || 0).toLocaleString('en-IN')}</div>
+                                </td>
+                                <td><StatusBadge status={e.status} /></td>
+                                <td>
+                                  <div className="member-actions">
+                                    {e.status === 'active' && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="btn-sm btn-pay"
+                                          onClick={() => setInstallmentTarget({ enrollment: e, plan })}
+                                        >
+                                          + Installment
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn-sm btn-success"
+                                          onClick={() => setWithdrawalTarget({ enrollment: e, plan })}
+                                        >
+                                          Payout
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn-sm btn-warn"
+                                          onClick={() => handleCancelEnrollment(e)}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─ Withdrawals sub-tab ─ */}
+              {kittyTab === 'withdrawals' && (
+                <div>
+                  <div className="kitty-sub-header">
+                    <h3>Withdrawal / Payout Records</h3>
+                  </div>
+
+                  {kittyWithdrawals.length === 0 ? (
+                    <div className="admin-empty">No withdrawal records yet.</div>
+                  ) : (
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Code</th>
+                            <th>Type</th>
+                            <th>Principal</th>
+                            <th>Bonus</th>
+                            <th>Deductions</th>
+                            <th>Net Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {kittyWithdrawals.map((w) => (
+                            <tr key={w.id}>
+                              <td className="td-code">{w.withdrawalCode}</td>
+                              <td>{w.withdrawalType}</td>
+                              <td>₹{(w.principalAmount || 0).toLocaleString('en-IN')}</td>
+                              <td>₹{(w.bonusAmount || 0).toLocaleString('en-IN')}</td>
+                              <td>₹{(w.deductions || 0).toLocaleString('en-IN')}</td>
+                              <td className="td-amount">₹{(w.netAmount || 0).toLocaleString('en-IN')}</td>
+                              <td><StatusBadge status={w.status} /></td>
+                              <td>
+                                {w.status === 'pending' && (
+                                  <button
+                                    type="button"
+                                    className="btn-sm btn-success"
+                                    onClick={() => handleReleaseWithdrawal(w)}
+                                  >
+                                    Release
+                                  </button>
+                                )}
+                                {w.releaseDate && (
+                                  <span className="release-date">Released: {w.releaseDate.slice(0, 10)}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* ─ Plans sub-tab ─ */}
               {kittyTab === 'plans' && (
@@ -1093,6 +1806,36 @@ export default function AdminPage() {
           plan={kittyPlans.find((p) => p.id === paymentTarget.planId)}
           onClose={() => setPaymentTarget(null)}
           onPaid={handleAddPayment}
+        />
+      )}
+
+      {/* Approval Modal */}
+      {approvalTarget && (
+        <ApprovalModal
+          enrollment={approvalTarget}
+          onClose={() => setApprovalTarget(null)}
+          onApprove={handleApproveEnrollment}
+          onReject={handleRejectEnrollment}
+        />
+      )}
+
+      {/* Installment Modal */}
+      {installmentTarget && (
+        <InstallmentModal
+          enrollment={installmentTarget.enrollment}
+          plan={installmentTarget.plan}
+          onClose={() => setInstallmentTarget(null)}
+          onSave={handleCreateInstallment}
+        />
+      )}
+
+      {/* Withdrawal Modal */}
+      {withdrawalTarget && (
+        <WithdrawalModal
+          enrollment={withdrawalTarget.enrollment}
+          plan={withdrawalTarget.plan}
+          onClose={() => setWithdrawalTarget(null)}
+          onSave={handleCreateWithdrawal}
         />
       )}
     </motion.div>

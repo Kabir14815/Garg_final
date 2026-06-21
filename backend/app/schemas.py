@@ -93,6 +93,95 @@ class PhoneUserResponse(BaseModel):
     is_admin: bool = False
 
 
+# Auth — email/OTP (for Kitty enrollment and user login)
+class SendEmailOTPRequest(BaseModel):
+    email: str
+
+
+class SendEmailOTPResponse(BaseModel):
+    sent: bool
+    message: str
+    email: str
+    expires_in_seconds: int = 300
+    dev_otp: Optional[str] = None  # only set in mock/dev mode
+
+
+class VerifyEmailOTPRequest(BaseModel):
+    email: str
+    otp: str
+
+
+class EmailUserResponse(BaseModel):
+    id: str
+    email: str
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    is_admin: bool = False
+    is_verified: bool = False
+
+
+# ─── Enhanced Signup/Login (name, phone, email, password + OTP verification) ──
+
+class SignupRequest(BaseModel):
+    """Signup step 1: Collect user details and send OTP"""
+    name: str
+    phone: str
+    email: str
+    password: str
+
+
+class SignupResponse(BaseModel):
+    """Response after signup initiation - OTP sent"""
+    message: str
+    email: str
+    expires_in_seconds: int = 300
+    dev_otp: Optional[str] = None  # only in dev mode
+
+
+class VerifySignupRequest(BaseModel):
+    """Signup step 2: Verify OTP to complete registration"""
+    email: str
+    otp: str
+
+
+class VerifySignupResponse(BaseModel):
+    """Response after successful signup verification"""
+    id: str
+    email: str
+    name: str
+    phone: str
+    is_admin: bool = False
+    is_verified: bool = True
+    message: str = "Account created successfully"
+
+
+class LoginWithPasswordRequest(BaseModel):
+    """Login with email and password"""
+    email: str
+    password: str
+
+
+class LoginWithOTPRequest(BaseModel):
+    """Login with email and OTP (passwordless)"""
+    email: str
+    otp: str
+
+
+class RequestLoginOTPRequest(BaseModel):
+    """Request OTP for login"""
+    email: str
+
+
+class FullUserResponse(BaseModel):
+    """Full user response with all details"""
+    id: str
+    email: str
+    name: str
+    phone: Optional[str] = None
+    is_admin: bool = False
+    is_verified: bool = True
+
+
 # ─── Kitty Savings Scheme ────────────────────────────────────────────────────
 
 class KittyPlanBase(BaseModel):
@@ -105,7 +194,7 @@ class KittyPlanBase(BaseModel):
 
 
 class KittyPlanCreate(KittyPlanBase):
-    pass
+    total_redeemable: Optional[float] = None  # Admin can set manually; auto-calculated if not provided
 
 
 class KittyPlanUpdate(BaseModel):
@@ -115,6 +204,7 @@ class KittyPlanUpdate(BaseModel):
     bonus_months: Optional[int] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    total_redeemable: Optional[float] = None  # Admin can override the calculated value
 
 
 class KittyPlanResponse(KittyPlanBase):
@@ -134,7 +224,7 @@ class KittyMemberBase(BaseModel):
     name: str
     phone: str
     email: Optional[str] = None
-    start_date: str  # YYYY-MM-DD
+    start_date: Optional[str] = None  # YYYY-MM-DD
     notes: Optional[str] = None
 
 
