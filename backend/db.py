@@ -1,6 +1,7 @@
 """MongoDB connection. Set MONGODB_URI and MONGODB_DB_NAME in backend/.env or the environment."""
 import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from pymongo import MongoClient, ASCENDING, DESCENDING
@@ -16,7 +17,7 @@ load_dotenv(_backend_dir / ".env")
 URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("MONGODB_DB_NAME", "garg")
 
-_client: MongoClient | None = None
+_client: Optional[MongoClient] = None
 _indexes_created = False
 
 
