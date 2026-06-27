@@ -138,9 +138,14 @@ def _otp_email_template(otp: str, user_name: Optional[str] = None) -> str:
     """
 
 
-def send_email_otp(email: str) -> dict:
+def send_email_otp(email: str, background_tasks=None) -> dict:
     """Generate OTP, store in MongoDB, and send via email.
-    
+
+    The OTP is generated and stored synchronously (fast). The actual SMTP
+    send is slow, so when a FastAPI ``background_tasks`` object is supplied the
+    email is dispatched after the HTTP response is returned. This keeps the
+    request from timing out on slow SMTP servers / cold starts.
+
     Returns:
         dict with 'sent': True/False, 'message': str, and optionally 'dev_otp' in mock mode
     """
@@ -176,10 +181,17 @@ def send_email_otp(email: str) -> dict:
         upsert=True
     )
     
-    # Send email
+    # Build email
     subject = f"Your OTP for Garg Jewellers: {otp}"
     html_body = _otp_email_template(otp, user_name)
-    sent = send_email(email, subject, html_body)
+
+    # Dispatch email: in the background when possible (non-blocking response),
+    # otherwise synchronously.
+    if background_tasks is not None:
+        background_tasks.add_task(send_email, email, subject, html_body)
+        sent = True
+    else:
+        sent = send_email(email, subject, html_body)
     
     result = {
         "sent": sent,

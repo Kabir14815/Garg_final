@@ -13,6 +13,7 @@ httpcore==1.0.9
 httptools==0.8.0
 httpx==0.27.0
 idna==3.18
+packaging==26.2
 pydantic==2.13.4
 pydantic_core==2.46.4
 pymongo==4.6.1

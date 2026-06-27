@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -363,7 +363,7 @@ def verify_otp_endpoint(body: VerifyOTPRequest):
 # ─── Email / OTP Auth ─────────────────────────────────────────────────────────
 
 @app.post("/api/auth/send-email-otp", response_model=SendEmailOTPResponse)
-def send_email_otp_endpoint(body: SendEmailOTPRequest):
+def send_email_otp_endpoint(body: SendEmailOTPRequest, background_tasks: BackgroundTasks):
     """Generate a 6-digit OTP and send it via email.
 
     In mock/dev mode (no SMTP configured), the OTP is echoed back in
@@ -372,7 +372,7 @@ def send_email_otp_endpoint(body: SendEmailOTPRequest):
     from app.email_otp import send_email_otp
     
     try:
-        result = send_email_otp(body.email)
+        result = send_email_otp(body.email, background_tasks=background_tasks)
         return SendEmailOTPResponse(**result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -412,7 +412,7 @@ from app.schemas import (
 
 
 @app.post("/api/auth/signup", response_model=SignupResponse)
-def signup_endpoint(body: SignupRequest):
+def signup_endpoint(body: SignupRequest, background_tasks: BackgroundTasks):
     """Step 1: Register new user and send OTP for email verification.
     
     Collects name, phone, email, password and sends OTP to verify email.
@@ -423,8 +423,8 @@ def signup_endpoint(body: SignupRequest):
         # Create pending user (unverified)
         create_pending_user(body.name, body.phone, body.email, body.password)
         
-        # Send OTP for verification
-        result = send_email_otp(body.email)
+        # Send OTP for verification (email dispatched in background)
+        result = send_email_otp(body.email, background_tasks=background_tasks)
         
         return SignupResponse(
             message="OTP sent to your email. Please verify to complete registration.",
@@ -471,7 +471,7 @@ def login_with_password_endpoint(body: LoginWithPasswordRequest):
 
 
 @app.post("/api/auth/login/request-otp", response_model=SignupResponse)
-def request_login_otp_endpoint(body: RequestLoginOTPRequest):
+def request_login_otp_endpoint(body: RequestLoginOTPRequest, background_tasks: BackgroundTasks):
     """Request OTP for passwordless login."""
     from app.email_otp import send_email_otp, get_user_by_email, normalize_email
     
@@ -484,7 +484,7 @@ def request_login_otp_endpoint(body: RequestLoginOTPRequest):
         raise HTTPException(status_code=400, detail="Please complete your registration first")
     
     try:
-        result = send_email_otp(body.email)
+        result = send_email_otp(body.email, background_tasks=background_tasks)
         return SignupResponse(
             message="OTP sent to your email",
             email=normalize_email(body.email),
