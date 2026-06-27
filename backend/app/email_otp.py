@@ -2,7 +2,9 @@
 import os
 import random
 import smtplib
+import socket
 import ssl
+from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -13,6 +15,30 @@ from db import get_email_otp_collection, get_users_collection
 
 OTP_EXPIRY_MINUTES = 5
 OTP_LENGTH = 6
+SMTP_TIMEOUT_SECONDS = 20
+
+
+@contextmanager
+def _force_ipv4():
+    """Temporarily restrict socket name resolution to IPv4 addresses.
+
+    Many PaaS containers (e.g. Render) lack an IPv6 route. When an SMTP host
+    resolves to an IPv6 address first, the connection fails with
+    ``[Errno 101] Network is unreachable``. Filtering getaddrinfo to IPv4
+    keeps proper hostname-based TLS (SNI/cert) while avoiding that failure.
+    """
+    _orig_getaddrinfo = socket.getaddrinfo
+
+    def _ipv4_getaddrinfo(host, *args, **kwargs):
+        results = _orig_getaddrinfo(host, *args, **kwargs)
+        ipv4 = [r for r in results if r[0] == socket.AF_INET]
+        return ipv4 or results
+
+    socket.getaddrinfo = _ipv4_getaddrinfo
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = _orig_getaddrinfo
 
 
 def normalize_email(email: str) -> str:
@@ -52,18 +78,25 @@ def send_email(to_email: str, subject: str, html_body: str) -> bool:
         
         context = ssl.create_default_context()
         
-        if use_ssl:
-            # SSL connection (port 465)
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context) as server:
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(from_email, to_email, msg.as_string())
-        else:
-            # STARTTLS connection (port 587)
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
-                if use_tls:
-                    server.starttls(context=context)
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(from_email, to_email, msg.as_string())
+        # Force IPv4 to avoid "[Errno 101] Network is unreachable" on hosts
+        # without an IPv6 route, and apply a timeout so a blocked port fails fast.
+        with _force_ipv4():
+            if use_ssl:
+                # SSL connection (port 465)
+                with smtplib.SMTP_SSL(
+                    smtp_host, smtp_port, context=context, timeout=SMTP_TIMEOUT_SECONDS
+                ) as server:
+                    server.login(smtp_user, smtp_pass)
+                    server.sendmail(from_email, to_email, msg.as_string())
+            else:
+                # STARTTLS connection (port 587)
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=SMTP_TIMEOUT_SECONDS) as server:
+                    server.ehlo()
+                    if use_tls:
+                        server.starttls(context=context)
+                        server.ehlo()
+                    server.login(smtp_user, smtp_pass)
+                    server.sendmail(from_email, to_email, msg.as_string())
         
         print(f"[EMAIL] Successfully sent to {to_email}")
         return True
