@@ -408,11 +408,21 @@ def request_enrollment(body: EnrollmentRequest, user_email: str = Query(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@public_router.get("/my-enrollments", response_model=List[EnrollmentResponse])
+@public_router.get("/my-enrollments", response_model=List[EnrollmentDetailResponse])
 def get_my_enrollments(user_email: str = Query(...)):
-    """Get all enrollments for the authenticated user."""
+    """Get all enrollments for the authenticated user, including plan details."""
     enrollments = enrollment_list(user_email=user_email)
-    return [_format_enrollment(e) for e in enrollments]
+    result = []
+    for e in enrollments:
+        formatted = _format_enrollment(e)
+        # Include plan details for each enrollment
+        plan = plan_get(e.get("plan_id", ""))
+        formatted["plan"] = _format_plan(plan) if plan else None
+        formatted["installments"] = []
+        formatted["withdrawals"] = []
+        formatted["ledger"] = []
+        result.append(formatted)
+    return result
 
 
 @public_router.get("/enrollments/{enrollment_id}", response_model=EnrollmentDetailResponse)
