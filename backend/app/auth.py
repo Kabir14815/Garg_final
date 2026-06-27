@@ -1,17 +1,26 @@
 """Auth helpers: hash password, verify, get user from DB."""
 from typing import Optional
-from passlib.context import CryptContext
-from db import get_db
 
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
+
+from db import get_db
 
 
 def hash_password(password: str) -> str:
-    return pwd_ctx.hash(password)
+    """Hash a password with bcrypt (72-byte limit enforced)."""
+    password_bytes = (password or "").encode("utf-8")[:72]
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_ctx.verify(plain, hashed)
+    """Verify a plaintext password against a bcrypt hash."""
+    if not hashed:
+        return False
+    password_bytes = (plain or "").encode("utf-8")[:72]
+    try:
+        return bcrypt.checkpw(password_bytes, hashed.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 def get_user_by_email(email: str) -> Optional[dict]:
