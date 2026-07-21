@@ -408,6 +408,8 @@ from app.schemas import (
     LoginWithOTPRequest,
     RequestLoginOTPRequest,
     FullUserResponse,
+    DirectSignupRequest,
+    DirectSignupResponse,
 )
 
 
@@ -458,16 +460,42 @@ def verify_signup_endpoint(body: VerifySignupRequest):
 
 @app.post("/api/auth/login/password", response_model=FullUserResponse)
 def login_with_password_endpoint(body: LoginWithPasswordRequest):
-    """Login with email and password."""
-    from app.email_otp import login_with_password
+    """Login with email/phone and password.
+    
+    The identifier can be either an email address or phone number.
+    """
+    from app.email_otp import login_with_identifier
     
     try:
-        user = login_with_password(body.email, body.password)
+        user = login_with_identifier(body.identifier, body.password)
         if not user:
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
         return FullUserResponse(**user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/auth/signup-direct", response_model=DirectSignupResponse)
+def signup_direct_endpoint(body: DirectSignupRequest):
+    """Direct signup without OTP verification.
+    
+    Both phone and email are required and must be unique.
+    Creates a verified user immediately.
+    """
+    from app.email_otp import create_user_direct
+    
+    try:
+        user = create_user_direct(
+            name=body.name,
+            phone=body.phone,
+            email=body.email,
+            password=body.password,
+        )
+        return DirectSignupResponse(**user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Signup failed: {str(e)}")
 
 
 @app.post("/api/auth/login/request-otp", response_model=SignupResponse)

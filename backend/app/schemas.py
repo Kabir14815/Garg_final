@@ -156,9 +156,27 @@ class VerifySignupResponse(BaseModel):
 
 
 class LoginWithPasswordRequest(BaseModel):
-    """Login with email and password"""
+    """Login with email or phone and password"""
+    identifier: str  # Can be email or phone number
+    password: str
+
+
+class DirectSignupRequest(BaseModel):
+    """Direct signup without OTP - both phone and email required"""
+    name: str
+    phone: str
     email: str
     password: str
+
+
+class DirectSignupResponse(BaseModel):
+    """Response after direct signup"""
+    id: str
+    email: str
+    name: str
+    phone: str
+    is_admin: bool = False
+    is_verified: bool = True
 
 
 class LoginWithOTPRequest(BaseModel):

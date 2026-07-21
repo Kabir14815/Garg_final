@@ -51,8 +51,64 @@ def generate_otp() -> str:
     return "".join([str(random.randint(0, 9)) for _ in range(OTP_LENGTH)])
 
 
+def _send_via_brevo(to_email: str, subject: str, html_body: str) -> bool:
+    """Send email through Brevo's HTTP API (port 443).
+
+    Works on hosts that block outbound SMTP ports (e.g. Render free tier).
+    Configure with EMAIL_PROVIDER=brevo and BREVO_API_KEY.
+    """
+    import httpx
+
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
+    from_email = (
+        os.getenv("EMAIL_FROM")
+        or os.getenv("SMTP_FROM")
+        or os.getenv("SMTP_USER")
+        or "otp@cnsevent.in"
+    )
+    from_name = os.getenv("EMAIL_FROM_NAME", "Garg Jewellers")
+
+    # Mock mode when no API key configured.
+    if not api_key:
+        print(f"[MOCK EMAIL] To: {to_email}, Subject: {subject}")
+        return True
+
+    try:
+        resp = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+                "accept": "application/json",
+            },
+            json={
+                "sender": {"email": from_email, "name": from_name},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "htmlContent": html_body,
+            },
+            timeout=20.0,
+        )
+        if resp.status_code in (200, 201, 202):
+            print(f"[EMAIL] Sent via Brevo to {to_email}")
+            return True
+        print(f"[EMAIL ERROR] Brevo HTTP {resp.status_code}: {resp.text}")
+        return False
+    except Exception as e:
+        print(f"[EMAIL ERROR] Brevo send to {to_email} failed: {e}")
+        return False
+
+
 def send_email(to_email: str, subject: str, html_body: str) -> bool:
-    """Send email using SMTP. Returns True on success."""
+    """Send an email via the configured provider.
+
+    EMAIL_PROVIDER=brevo  -> HTTP API (recommended on Render / SMTP-blocked hosts)
+    EMAIL_PROVIDER=smtp    -> direct SMTP (default; works locally / on paid hosts)
+    """
+    provider = os.getenv("EMAIL_PROVIDER", "smtp").strip().lower()
+    if provider == "brevo":
+        return _send_via_brevo(to_email, subject, html_body)
+
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER", "")
@@ -473,4 +529,106 @@ def get_user_by_email(email: str) -> Optional[dict]:
         "phone": user.get("phone", ""),
         "is_admin": user.get("is_admin", False),
         "is_verified": user.get("is_verified", True),
+    }
+
+
+def create_user_direct(name: str, phone: str, email: str, password: str) -> dict:
+    """Create a verified user directly (no OTP verification required).
+    
+    Both phone and email are required and must be unique.
+    """
+    email = normalize_email(email)
+    phone = phone.strip()
+    
+    if not phone or len(phone) < 10:
+        raise ValueError("Valid phone number is required")
+    if not email:
+        raise ValueError("Email is required")
+    if not password or len(password) < 6:
+        raise ValueError("Password must be at least 6 characters")
+    
+    coll = get_users_collection()
+    
+    # Check if email already exists
+    existing_email = coll.find_one({"email": email})
+    if existing_email:
+        raise ValueError("An account with this email already exists")
+    
+    # Check if phone already exists
+    existing_phone = coll.find_one({"phone": phone})
+    if existing_phone:
+        raise ValueError("An account with this phone number already exists")
+    
+    # Create verified user directly
+    now = datetime.now(timezone.utc)
+    new_user = {
+        "email": email,
+        "name": name.strip(),
+        "phone": phone,
+        "password_hash": _hash_password(password),
+        "is_admin": False,
+        "is_verified": True,  # Direct signup = already verified
+        "created_at": now,
+        "updated_at": now,
+        "auth_method": "password",
+    }
+    
+    result = coll.insert_one(new_user)
+    
+    return {
+        "id": str(result.inserted_id),
+        "email": email,
+        "name": name.strip(),
+        "phone": phone,
+        "is_admin": False,
+        "is_verified": True,
+    }
+
+
+def login_with_identifier(identifier: str, password: str) -> Optional[dict]:
+    """Login with either email or phone number.
+    
+    Args:
+        identifier: Can be an email address or phone number
+        password: User's password
+    
+    Returns user dict if successful, None otherwise.
+    """
+    coll = get_users_collection()
+    
+    # Determine if identifier is email or phone
+    identifier = identifier.strip()
+    if "@" in identifier:
+        # It's an email
+        query = {"email": normalize_email(identifier)}
+    else:
+        # It's a phone number - strip any non-digits
+        phone = ''.join(c for c in identifier if c.isdigit())
+        if len(phone) < 10:
+            return None
+        query = {"phone": phone}
+    
+    user = coll.find_one(query)
+    if not user:
+        return None
+    
+    # Check if user is verified
+    if not user.get("is_verified", False):
+        raise ValueError("Account not verified")
+    
+    # Check password
+    password_hash = user.get("password_hash")
+    if not password_hash:
+        raise ValueError("This account does not have a password set")
+    
+    if not _verify_password(password, password_hash):
+        return None
+    
+    return {
+        "id": str(user["_id"]),
+        "email": user["email"],
+        "name": user.get("name", ""),
+        "phone": user.get("phone", ""),
+        "is_admin": user.get("is_admin", False),
+        "is_verified": True,
     }
