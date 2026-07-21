@@ -162,10 +162,10 @@ class LoginWithPasswordRequest(BaseModel):
 
 
 class DirectSignupRequest(BaseModel):
-    """Direct signup without OTP - both phone and email required"""
+    """Direct signup without OTP - phone required, email optional"""
     name: str
     phone: str
-    email: str
+    email: Optional[str] = None
     password: str
 
 

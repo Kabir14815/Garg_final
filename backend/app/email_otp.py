@@ -532,37 +532,35 @@ def get_user_by_email(email: str) -> Optional[dict]:
     }
 
 
-def create_user_direct(name: str, phone: str, email: str, password: str) -> dict:
+def create_user_direct(name: str, phone: str, email: Optional[str], password: str) -> dict:
     """Create a verified user directly (no OTP verification required).
     
-    Both phone and email are required and must be unique.
+    Phone is required and must be unique. Email is optional but if provided must be unique.
     """
-    email = normalize_email(email)
     phone = phone.strip()
+    email = normalize_email(email) if email else None
     
     if not phone or len(phone) < 10:
         raise ValueError("Valid phone number is required")
-    if not email:
-        raise ValueError("Email is required")
     if not password or len(password) < 6:
         raise ValueError("Password must be at least 6 characters")
     
     coll = get_users_collection()
-    
-    # Check if email already exists
-    existing_email = coll.find_one({"email": email})
-    if existing_email:
-        raise ValueError("An account with this email already exists")
     
     # Check if phone already exists
     existing_phone = coll.find_one({"phone": phone})
     if existing_phone:
         raise ValueError("An account with this phone number already exists")
     
+    # Check if email already exists (only if email provided)
+    if email:
+        existing_email = coll.find_one({"email": email})
+        if existing_email:
+            raise ValueError("An account with this email already exists")
+    
     # Create verified user directly
     now = datetime.now(timezone.utc)
     new_user = {
-        "email": email,
         "name": name.strip(),
         "phone": phone,
         "password_hash": _hash_password(password),
@@ -573,11 +571,15 @@ def create_user_direct(name: str, phone: str, email: str, password: str) -> dict
         "auth_method": "password",
     }
     
+    # Only add email if provided
+    if email:
+        new_user["email"] = email
+    
     result = coll.insert_one(new_user)
     
     return {
         "id": str(result.inserted_id),
-        "email": email,
+        "email": email or "",
         "name": name.strip(),
         "phone": phone,
         "is_admin": False,
@@ -626,7 +628,7 @@ def login_with_identifier(identifier: str, password: str) -> Optional[dict]:
     
     return {
         "id": str(user["_id"]),
-        "email": user["email"],
+        "email": user.get("email", ""),
         "name": user.get("name", ""),
         "phone": user.get("phone", ""),
         "is_admin": user.get("is_admin", False),
