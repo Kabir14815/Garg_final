@@ -81,8 +81,16 @@ def ensure_indexes():
     try:
         db = get_db()
         
-        # Users collection
-        db["users"].create_index("email", unique=True)
+        # Users collection - drop old non-sparse email index if exists
+        try:
+            db["users"].drop_index("email_1")
+        except Exception:
+            pass  # Index might not exist
+        
+        # Email is optional, so use sparse index to allow multiple null values
+        db["users"].create_index("email", unique=True, sparse=True)
+        # Phone is required and must be unique
+        db["users"].create_index("phone", unique=True, sparse=True)
         
         # Products collection
         db["products"].create_index("category")
