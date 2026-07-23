@@ -80,6 +80,7 @@ class EnrollmentRequest(BaseModel):
     plan_id: str
     user_name: str
     user_phone: Optional[str] = ""
+    user_email: Optional[str] = ""  # Optional - phone is primary identifier
     start_date: Optional[str] = None
     notes: Optional[str] = ""
 
@@ -88,9 +89,9 @@ class EnrollmentResponse(BaseModel):
     id: str
     enrollment_code: str
     plan_id: str
-    user_email: str
+    user_phone: str
     user_name: str
-    user_phone: str = ""
+    user_email: str = ""  # Optional - phone is primary identifier
     status: str
     start_date: Optional[str] = None
     total_installments: int
@@ -248,9 +249,9 @@ def _format_enrollment(e: dict) -> dict:
         "id": e.get("id", ""),
         "enrollment_code": e.get("enrollment_code", ""),
         "plan_id": e.get("plan_id", ""),
-        "user_email": e.get("user_email", ""),
-        "user_name": e.get("user_name", ""),
         "user_phone": e.get("user_phone", ""),
+        "user_name": e.get("user_name", ""),
+        "user_email": e.get("user_email", ""),
         "status": e.get("status", "pending"),
         "start_date": e.get("start_date"),
         "total_installments": e.get("total_installments", 11),
@@ -376,8 +377,8 @@ def get_public_plan(plan_id: str):
 
 
 @public_router.post("/enroll", response_model=EnrollmentResponse)
-def request_enrollment(body: EnrollmentRequest, user_email: str = Query(...)):
-    """Request enrollment in a kitty plan. Requires email auth.
+def request_enrollment(body: EnrollmentRequest, user_phone: str = Query(...)):
+    """Request enrollment in a kitty plan. Requires phone auth.
     
     The enrollment starts in 'pending' status and must be approved by admin.
     """
@@ -389,7 +390,7 @@ def request_enrollment(body: EnrollmentRequest, user_email: str = Query(...)):
         raise HTTPException(status_code=400, detail="This plan is not available for enrollment")
     
     # Check if user already has pending/active enrollment in this plan
-    existing = enrollment_list(user_email=user_email, plan_id=body.plan_id)
+    existing = enrollment_list(user_phone=user_phone, plan_id=body.plan_id)
     active_enrollments = [e for e in existing if e["status"] in ["pending", "active"]]
     if active_enrollments:
         raise HTTPException(status_code=400, detail="You already have an active or pending enrollment in this plan")
@@ -397,9 +398,9 @@ def request_enrollment(body: EnrollmentRequest, user_email: str = Query(...)):
     try:
         enrollment = enrollment_create({
             "plan_id": body.plan_id,
-            "user_email": user_email,
+            "user_phone": user_phone,
             "user_name": body.user_name,
-            "user_phone": body.user_phone or "",
+            "user_email": body.user_email or "",
             "start_date": body.start_date,
             "notes": body.notes or "",
         })
@@ -409,9 +410,9 @@ def request_enrollment(body: EnrollmentRequest, user_email: str = Query(...)):
 
 
 @public_router.get("/my-enrollments", response_model=List[EnrollmentDetailResponse])
-def get_my_enrollments(user_email: str = Query(...)):
+def get_my_enrollments(user_phone: str = Query(...)):
     """Get all enrollments for the authenticated user, including plan details."""
-    enrollments = enrollment_list(user_email=user_email)
+    enrollments = enrollment_list(user_phone=user_phone)
     result = []
     for e in enrollments:
         formatted = _format_enrollment(e)
@@ -426,17 +427,17 @@ def get_my_enrollments(user_email: str = Query(...)):
 
 
 @public_router.get("/enrollments/{enrollment_id}", response_model=EnrollmentDetailResponse)
-def get_enrollment_detail(enrollment_id: str, user_email: Optional[str] = Query(None)):
+def get_enrollment_detail(enrollment_id: str, user_phone: Optional[str] = Query(None)):
     """Get enrollment details including installments, withdrawals, and ledger.
     
-    If user_email is provided, verifies ownership.
+    If user_phone is provided, verifies ownership.
     """
     enrollment = enrollment_get(enrollment_id)
     if not enrollment:
         raise HTTPException(status_code=404, detail="Enrollment not found")
     
-    # Verify ownership if user_email provided
-    if user_email and enrollment.get("user_email", "").lower() != user_email.lower():
+    # Verify ownership if user_phone provided
+    if user_phone and enrollment.get("user_phone", "") != user_phone:
         raise HTTPException(status_code=403, detail="Not authorized to view this enrollment")
     
     # Get related data
@@ -496,11 +497,11 @@ def admin_delete_plan(plan_id: str, admin_email: str = Query("admin")):
 @admin_router.get("/enrollments", response_model=List[EnrollmentResponse])
 def admin_list_enrollments(
     status: Optional[str] = Query(None),
-    user_email: Optional[str] = Query(None),
+    user_phone: Optional[str] = Query(None),
     plan_id: Optional[str] = Query(None),
 ):
     """List all enrollments with optional filters."""
-    enrollments = enrollment_list(status=status, user_email=user_email, plan_id=plan_id)
+    enrollments = enrollment_list(status=status, user_phone=user_phone, plan_id=plan_id)
     return [_format_enrollment(e) for e in enrollments]
 
 

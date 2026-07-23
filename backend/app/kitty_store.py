@@ -205,17 +205,21 @@ def plan_delete(plan_id: str, deleted_by: str) -> bool:
 
 def enrollment_list(
     status: Optional[str] = None,
-    user_email: Optional[str] = None,
+    user_phone: Optional[str] = None,
     plan_id: Optional[str] = None,
 ) -> List[dict]:
-    """List enrollments with optional filters."""
+    """List enrollments with optional filters.
+    
+    user_phone is the primary identifier for filtering enrollments.
+    """
     coll = get_kitty_enrollments_collection()
     query: Dict[str, Any] = {}
     
     if status:
         query["status"] = status
-    if user_email:
-        query["user_email"] = user_email.lower()
+    if user_phone:
+        # Phone is the primary identifier
+        query["user_phone"] = user_phone.strip()
     if plan_id:
         query["plan_id"] = plan_id
     
@@ -239,13 +243,20 @@ def enrollment_get_by_code(code: str) -> Optional[dict]:
 
 
 def enrollment_create(data: dict) -> dict:
-    """Create a new enrollment request (status: pending)."""
+    """Create a new enrollment request (status: pending).
+    
+    user_phone is required as the primary identifier.
+    """
     coll = get_kitty_enrollments_collection()
     now = _now()
     
     plan = plan_get(data["plan_id"])
     if not plan:
         raise ValueError("Plan not found")
+    
+    user_phone = data.get("user_phone", "").strip()
+    if not user_phone:
+        raise ValueError("Phone number is required")
     
     enrollment_code = _generate_code("EN", "kitty_enrollments")
     
@@ -258,9 +269,9 @@ def enrollment_create(data: dict) -> dict:
     doc = {
         "enrollment_code": enrollment_code,
         "plan_id": data["plan_id"],
-        "user_email": data["user_email"].lower().strip(),
+        "user_phone": user_phone,
         "user_name": data["user_name"],
-        "user_phone": data.get("user_phone", ""),
+        "user_email": data.get("user_email", "").lower().strip() if data.get("user_email") else "",
         "status": "pending",
         "start_date": data.get("start_date"),
         "total_installments": total_installments,
@@ -282,7 +293,7 @@ def enrollment_create(data: dict) -> dict:
     result = coll.insert_one(doc)
     doc["_id"] = result.inserted_id
     
-    log_audit("kitty_enrollment", str(result.inserted_id), "create", data["user_email"])
+    log_audit("kitty_enrollment", str(result.inserted_id), "create", user_phone)
     
     return _str_id(doc)
 
