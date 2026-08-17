@@ -13,6 +13,7 @@ function calcPrice(product, rates) {
     : (product.category === 'gold' && product.purity === '24K' ? rates.gold24k
       : product.category === 'gold' && product.purity === '22K' ? rates.gold22k
       : product.category === 'gold' && product.purity === '18K' ? Math.round(rates.gold22k * 0.83)
+      : product.category === 'gold' && product.purity === '14K' ? Math.round(rates.gold24k * (14 / 24))
       : product.category === 'silver' ? rates.silver
       : product.category === 'diamond' ? rates.diamondIndex
       : 0)

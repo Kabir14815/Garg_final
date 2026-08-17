@@ -49,6 +49,17 @@ def product_create(data: dict) -> dict:
     """Create a new product in MongoDB."""
     coll = get_products_collection()
     now = _now()
+
+    category_id = data.get("category_id")
+    category_ancestors = data.get("category_ancestors") or []
+    if category_id and not category_ancestors:
+        try:
+            from app.category_store import category_get
+            leaf = category_get(category_id)
+            if leaf:
+                category_ancestors = list(leaf.get("ancestors") or []) + [leaf["id"]]
+        except Exception:
+            pass
     
     doc = {
         "name": data.get("name", "Untitled"),
@@ -60,6 +71,8 @@ def product_create(data: dict) -> dict:
         "product_type": data.get("product_type", "Ring"),
         "diamond_weight": data.get("diamond_weight"),
         "images": data.get("images", []),
+        "category_id": category_id,
+        "category_ancestors": category_ancestors,
         "created_at": now,
         "updated_at": now,
     }
@@ -80,7 +93,8 @@ def product_update(id: str, data: dict) -> Optional[dict]:
         update_fields = {}
         allowed = [
             "name", "category", "weight", "making_charges", "metal_type",
-            "purity", "product_type", "diamond_weight", "images"
+            "purity", "product_type", "diamond_weight", "images",
+            "category_id", "category_ancestors",
         ]
         
         for key in allowed:
@@ -91,6 +105,15 @@ def product_update(id: str, data: dict) -> Optional[dict]:
                     update_fields[key] = float(data[key]) if data[key] is not None else None
                 else:
                     update_fields[key] = data[key]
+
+        if "category_id" in update_fields and update_fields["category_id"] and "category_ancestors" not in update_fields:
+            try:
+                from app.category_store import category_get
+                leaf = category_get(update_fields["category_id"])
+                if leaf:
+                    update_fields["category_ancestors"] = list(leaf.get("ancestors") or []) + [leaf["id"]]
+            except Exception:
+                pass
         
         if not update_fields:
             doc = coll.find_one({"_id": _oid(id)})
@@ -170,21 +193,25 @@ def rates_update(updates: dict) -> dict:
 # These are kept for backward compatibility with existing admin dashboard code.
 # New code should use kitty_store.py directly.
 
-def kitty_plan_list() -> list[dict]:
-    """List kitty plans - redirects to kitty_store."""
-    from app.kitty_store import plan_list
-    plans = plan_list(include_inactive=True)
-    # Transform to legacy format
-    return [{
+def _legacy_plan(p: dict) -> dict:
+    return {
         "id": p["id"],
         "name": p["name"],
         "monthly_amount": p["monthly_amount"],
         "duration_months": p["duration_months"],
         "bonus_months": p["bonus_months"],
         "total_redeemable": p["total_redeemable"],
-        "description": p.get("description", ""),
+        "subtitle": p.get("subtitle") or "",
+        "description": p.get("description") or "",
         "is_active": p.get("is_active", True),
-    } for p in plans]
+    }
+
+
+def kitty_plan_list() -> list[dict]:
+    """List kitty plans - redirects to kitty_store."""
+    from app.kitty_store import plan_list
+    plans = plan_list(include_inactive=True)
+    return [_legacy_plan(p) for p in plans]
 
 
 def kitty_plan_get(id: str) -> Optional[dict]:
@@ -193,32 +220,14 @@ def kitty_plan_get(id: str) -> Optional[dict]:
     p = plan_get(id)
     if not p:
         return None
-    return {
-        "id": p["id"],
-        "name": p["name"],
-        "monthly_amount": p["monthly_amount"],
-        "duration_months": p["duration_months"],
-        "bonus_months": p["bonus_months"],
-        "total_redeemable": p["total_redeemable"],
-        "description": p.get("description", ""),
-        "is_active": p.get("is_active", True),
-    }
+    return _legacy_plan(p)
 
 
 def kitty_plan_create(data: dict) -> dict:
     """Create kitty plan - redirects to kitty_store."""
     from app.kitty_store import plan_create
     p = plan_create(data, created_by="system")
-    return {
-        "id": p["id"],
-        "name": p["name"],
-        "monthly_amount": p["monthly_amount"],
-        "duration_months": p["duration_months"],
-        "bonus_months": p["bonus_months"],
-        "total_redeemable": p["total_redeemable"],
-        "description": p.get("description", ""),
-        "is_active": p.get("is_active", True),
-    }
+    return _legacy_plan(p)
 
 
 def kitty_plan_update(id: str, data: dict) -> Optional[dict]:
@@ -227,16 +236,7 @@ def kitty_plan_update(id: str, data: dict) -> Optional[dict]:
     p = plan_update(id, data, updated_by="admin")
     if not p:
         return None
-    return {
-        "id": p["id"],
-        "name": p["name"],
-        "monthly_amount": p["monthly_amount"],
-        "duration_months": p["duration_months"],
-        "bonus_months": p["bonus_months"],
-        "total_redeemable": p["total_redeemable"],
-        "description": p.get("description", ""),
-        "is_active": p.get("is_active", True),
-    }
+    return _legacy_plan(p)
 
 
 def kitty_plan_delete(id: str) -> bool:
@@ -418,46 +418,63 @@ def kitty_member_delete(id: str) -> bool:
 
 # ─── Seed data on first run ──────────────────────────────────────────────────
 
+_KITTY_GROUP_DESCRIPTION = (
+    "Gold Investment Plan starting from 2000rs Per month a 10 month kitty scheme program "
+    "where a lucky draw will be conducted on 15th of every month. Become the part of the most "
+    "transparent and luckiest lucky draw system. Small savings lead to better investments."
+)
+
+_KITTY_GROUPS = [
+    "Ratnam group",
+    "Abhushan group",
+    "Kirpa group",
+    "Raunaq group",
+]
+
+
 def seed_kitty_plans():
-    """Seed default kitty plans if none exist."""
-    from app.kitty_store import plan_list, plan_create
-    
-    existing = plan_list()
-    if existing:
-        return
-    
-    seed_plans = [
+    """Seed / upsert the four named kitty groups. Deactivates legacy Silver/Gold/Premium seeds."""
+    from app.kitty_store import plan_list, plan_create, plan_update
+
+    desired = [
         {
-            "name": "Silver Savings – ₹1,000/mo",
-            "monthly_amount": 1000,
-            "duration_months": 11,
-            "bonus_months": 1,
-            "description": "Save ₹1,000 every month for 11 months and get 1 month free. Redeem ₹12,000 toward any purchase.",
-            "is_active": True,
-            "status": "active",
-        },
-        {
-            "name": "Gold Savings – ₹2,000/mo",
+            "name": name,
+            "subtitle": "GOLD INVESTMENT PLAN",
             "monthly_amount": 2000,
-            "duration_months": 11,
-            "bonus_months": 1,
-            "description": "Save ₹2,000 every month for 11 months and get 1 month free. Redeem ₹24,000 toward any purchase.",
+            "duration_months": 10,
+            "bonus_months": 0,
+            "total_redeemable": 20000,
+            "description": _KITTY_GROUP_DESCRIPTION,
             "is_active": True,
             "status": "active",
-        },
-        {
-            "name": "Premium – ₹5,000/mo",
-            "monthly_amount": 5000,
-            "duration_months": 11,
-            "bonus_months": 1,
-            "description": "Save ₹5,000 every month for 11 months and get 1 month free. Redeem ₹60,000 toward any purchase.",
-            "is_active": True,
-            "status": "active",
-        },
+        }
+        for name in _KITTY_GROUPS
     ]
-    
-    for p in seed_plans:
-        try:
-            plan_create(p, created_by="system")
-        except Exception:
-            pass
+
+    existing = plan_list(include_inactive=True)
+    by_name = { (p.get("name") or "").strip().lower(): p for p in existing }
+
+    for plan in desired:
+        key = plan["name"].lower()
+        if key in by_name:
+            try:
+                plan_update(by_name[key]["id"], plan, updated_by="system")
+            except Exception:
+                pass
+        else:
+            try:
+                plan_create(plan, created_by="system")
+            except Exception:
+                pass
+
+    # Deactivate legacy seeded plans that are not one of the four groups
+    legacy_prefixes = ("silver savings", "gold savings", "premium")
+    for p in plan_list(include_inactive=True):
+        name = (p.get("name") or "").strip().lower()
+        if name in {g.lower() for g in _KITTY_GROUPS}:
+            continue
+        if any(name.startswith(pref) for pref in legacy_prefixes) and p.get("is_active", True):
+            try:
+                plan_update(p["id"], {"is_active": False, "status": "inactive"}, updated_by="system")
+            except Exception:
+                pass

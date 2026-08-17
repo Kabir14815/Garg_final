@@ -2,14 +2,12 @@ import { useMemo, useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
-  METAL_TYPES,
   PURITIES,
-  PRODUCT_TYPES,
   MIN_ORDER_VALUE,
   GST_RATE,
 } from '../data/shopData'
 import { useMetalRates } from '../context/MetalRatesContext'
-import { getProducts } from '../api/client'
+import { getProducts, getCategoryTree } from '../api/client'
 import './ShopPage.css'
 
 function calcFinalPrice(product, rates) {
@@ -18,6 +16,7 @@ function calcFinalPrice(product, rates) {
     : (product.category === 'gold' && product.purity === '24K' ? rates.gold24k
       : product.category === 'gold' && product.purity === '22K' ? rates.gold22k
       : product.category === 'gold' && product.purity === '18K' ? Math.round(rates.gold22k * 0.83)
+      : product.category === 'gold' && product.purity === '14K' ? Math.round(rates.gold24k * (14 / 24))
       : product.category === 'silver' ? rates.silver
       : product.category === 'diamond' ? rates.diamondIndex
       : 0)
@@ -30,16 +29,34 @@ function calcFinalPrice(product, rates) {
   return Math.round(beforeGst + gst)
 }
 
+function productInCategory(product, categoryId) {
+  if (!categoryId) return true
+  if (product.categoryId === categoryId) return true
+  return Array.isArray(product.categoryAncestors) && product.categoryAncestors.includes(categoryId)
+}
+
+function normalizePurity(raw) {
+  if (!raw) return ''
+  const u = raw.toUpperCase()
+  if (u.endsWith('K')) return u
+  if (/^\d+$/.test(u)) return `${u}K`
+  return u
+}
+
 export default function ShopPage() {
   const [searchParams] = useSearchParams()
   const categoryParam = searchParams.get('category') || ''
+  const categoryIdParam = searchParams.get('categoryId') || ''
+  const purityParam = searchParams.get('purity') || ''
   const { rates } = useMetalRates()
   const [products, setProducts] = useState([])
+  const [categoryTree, setCategoryTree] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const [metalFilter, setMetalFilter] = useState('')
-  const [purityFilter, setPurityFilter] = useState('')
+  const [categoryIdFilter, setCategoryIdFilter] = useState(categoryIdParam)
+  const [purityFilter, setPurityFilter] = useState(normalizePurity(purityParam))
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
   const [weightMin, setWeightMin] = useState('')
@@ -48,17 +65,41 @@ export default function ShopPage() {
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
-    getProducts()
-      .then(setProducts)
+    Promise.all([getProducts(), getCategoryTree(true)])
+      .then(([prods, tree]) => {
+        setProducts(prods)
+        setCategoryTree(tree || [])
+      })
       .catch((e) => setError(e.message || 'Failed to load products'))
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    setCategoryIdFilter(categoryIdParam)
+  }, [categoryIdParam])
+
+  const rootCategories = categoryTree
+  const subgroupOptions = useMemo(() => {
+    if (!metalFilter && !categoryParam) return []
+    const key = metalFilter || categoryParam
+    const root = rootCategories.find(
+      (c) => c.slug === key || (c.name || '').toLowerCase() === key.toLowerCase()
+    )
+    return root?.children || []
+  }, [rootCategories, metalFilter, categoryParam])
+
   const filtered = useMemo(() => {
     let list = [...products]
-    if (categoryParam) list = list.filter((p) => p.category === categoryParam)
+    if (categoryIdFilter) {
+      list = list.filter((p) => productInCategory(p, categoryIdFilter))
+    } else if (categoryParam) {
+      list = list.filter((p) => p.category === categoryParam)
+    }
     if (metalFilter) list = list.filter((p) => p.category.toLowerCase() === metalFilter.toLowerCase())
-    if (purityFilter) list = list.filter((p) => p.purity === purityFilter)
+    if (purityFilter) {
+      const normalized = normalizePurity(purityFilter)
+      list = list.filter((p) => p.purity === normalized)
+    }
     if (typeFilter) list = list.filter((p) => p.type === typeFilter)
     if (priceMin !== '') {
       const min = Number(priceMin)
@@ -71,7 +112,7 @@ export default function ShopPage() {
     if (weightMin !== '') list = list.filter((p) => (p.weight || 0) >= Number(weightMin))
     if (weightMax !== '') list = list.filter((p) => (p.weight || 0) <= Number(weightMax))
     return list
-  }, [products, categoryParam, metalFilter, purityFilter, typeFilter, priceMin, priceMax, weightMin, weightMax, rates])
+  }, [products, categoryParam, categoryIdFilter, metalFilter, purityFilter, typeFilter, priceMin, priceMax, weightMin, weightMax, rates])
 
   return (
     <div className="shop-page">
@@ -79,14 +120,40 @@ export default function ShopPage() {
         <aside className="shop-filters">
           <h3>Filters</h3>
           <div className="filter-group">
-            <label>Metal Type</label>
-            <select value={metalFilter} onChange={(e) => setMetalFilter(e.target.value)}>
+            <label>Category</label>
+            <select
+              value={metalFilter}
+              onChange={(e) => {
+                setMetalFilter(e.target.value)
+                setCategoryIdFilter('')
+                setTypeFilter('')
+              }}
+            >
               <option value="">All</option>
-              {METAL_TYPES.map((m) => (
-                <option key={m} value={m.toLowerCase()}>{m}</option>
+              {rootCategories.map((m) => (
+                <option key={m.id} value={m.slug || m.name.toLowerCase()}>{m.name}</option>
               ))}
             </select>
           </div>
+          {subgroupOptions.length > 0 && (
+            <div className="filter-group">
+              <label>Subgroup</label>
+              <select
+                value={categoryIdFilter}
+                onChange={(e) => {
+                  setCategoryIdFilter(e.target.value)
+                  const node = subgroupOptions.find((n) => n.id === e.target.value)
+                  if (node) setTypeFilter(node.name)
+                  else setTypeFilter('')
+                }}
+              >
+                <option value="">All</option>
+                {subgroupOptions.map((n) => (
+                  <option key={n.id} value={n.id}>{n.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="filter-group">
             <label>Purity</label>
             <select value={purityFilter} onChange={(e) => setPurityFilter(e.target.value)}>
@@ -97,71 +164,55 @@ export default function ShopPage() {
             </select>
           </div>
           <div className="filter-group">
-            <label>Product Type</label>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="">All</option>
-              {PRODUCT_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+            <label>Price min (₹)</label>
+            <input type="number" min="0" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="0" />
           </div>
           <div className="filter-group">
-            <label>Price Range (₹)</label>
-            <input type="number" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} />
-            <input type="number" placeholder="Max" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} />
+            <label>Price max (₹)</label>
+            <input type="number" min="0" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Any" />
           </div>
           <div className="filter-group">
-            <label>Weight (g)</label>
-            <input type="number" placeholder="Min" value={weightMin} onChange={(e) => setWeightMin(e.target.value)} />
-            <input type="number" placeholder="Max" value={weightMax} onChange={(e) => setWeightMax(e.target.value)} />
+            <label>Weight min (g)</label>
+            <input type="number" min="0" step="0.01" value={weightMin} onChange={(e) => setWeightMin(e.target.value)} />
           </div>
-          <p className="shop-min-order">Minimum order: ₹{MIN_ORDER_VALUE.toLocaleString('en-IN')}</p>
+          <div className="filter-group">
+            <label>Weight max (g)</label>
+            <input type="number" min="0" step="0.01" value={weightMax} onChange={(e) => setWeightMax(e.target.value)} />
+          </div>
+          <p className="filter-note">Min order ₹{MIN_ORDER_VALUE.toLocaleString('en-IN')}</p>
         </aside>
-        <div className="shop-main">
-          <h1 className="shop-title">Shop</h1>
-          {loading && (
-            <div className="shop-loading">
-              <div className="loading-spinner" aria-hidden="true" />
-              <p>Loading products…</p>
-            </div>
-          )}
-          {error && <p className="shop-error" role="alert">{error}</p>}
+
+        <div className="shop-results">
+          {loading && <p>Loading…</p>}
+          {error && <p className="shop-error">{error}</p>}
           {!loading && !error && (
             <>
+              <p className="shop-count">{filtered.length} pieces</p>
               <div className="shop-grid">
-                {filtered.map((product, i) => {
-                  const price = calcFinalPrice(product, rates)
-                  return (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: reduceMotion ? 0 : 0.35, delay: reduceMotion ? 0 : Math.min(i * 0.04, 0.3) }}
-                    >
-                      <Link
-                        to={`/product/${product.id}`}
-                        className="shop-card hover-lift"
-                      >
-                        <div className="shop-card-image">
+                {filtered.map((product, i) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: reduceMotion ? 0 : Math.min(i * 0.03, 0.3) }}
+                  >
+                    <Link to={`/shop/${product.id}`} className="shop-card">
+                      <div className="shop-card-image">
                         {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} loading="lazy" decoding="async" />
+                          <img src={product.images[0]} alt={product.name} loading="lazy" />
                         ) : (
-                          <span className="shop-card-icon">◆</span>
+                          <div className="shop-card-placeholder">G</div>
                         )}
                       </div>
                       <div className="shop-card-body">
                         <h3>{product.name}</h3>
                         <p>{product.purity && `${product.purity} · `}{product.type} {product.weight ? `· ${product.weight}g` : ''}</p>
-                        <p className="shop-card-price">₹{price.toLocaleString('en-IN')}</p>
+                        <strong>₹{calcFinalPrice(product, rates).toLocaleString('en-IN')}</strong>
                       </div>
                     </Link>
-                    </motion.div>
-                  )
-                })}
+                  </motion.div>
+                ))}
               </div>
-              {filtered.length === 0 && (
-                <p className="shop-empty">No products match your filters.</p>
-              )}
             </>
           )}
         </div>

@@ -13,6 +13,18 @@ from app.kitty_store import (
     ledger_list, ledger_add_adjustment,
     get_enrollment_stats, get_plan_stats,
 )
+from app.user_notification_service import (
+    notify_enrollment,
+    notify_installment,
+    notify_withdrawal,
+)
+
+
+def _safe_notify(callback, *args) -> None:
+    try:
+        callback(*args)
+    except Exception as exc:
+        print(f"⚠ Customer notification could not be created: {exc}")
 
 
 # ─── Pydantic Schemas for Kitty API ──────────────────────────────────────────
@@ -21,6 +33,7 @@ class KittyPlanPublicResponse(BaseModel):
     id: str
     plan_code: Optional[str] = None
     name: str
+    subtitle: str = ""
     description: str = ""
     monthly_amount: float
     duration_months: int = 11
@@ -43,6 +56,7 @@ class KittyPlanAdminCreate(BaseModel):
     monthly_amount: float
     duration_months: int = 11
     bonus_months: int = 1
+    subtitle: Optional[str] = ""
     description: Optional[str] = ""
     plan_code: Optional[str] = None
     joining_fee: float = 0
@@ -62,6 +76,7 @@ class KittyPlanAdminUpdate(BaseModel):
     monthly_amount: Optional[float] = None
     duration_months: Optional[int] = None
     bonus_months: Optional[int] = None
+    subtitle: Optional[str] = None
     description: Optional[str] = None
     plan_code: Optional[str] = None
     joining_fee: Optional[float] = None
@@ -243,29 +258,41 @@ def _datetime_to_str(dt) -> Optional[str]:
     return str(dt)
 
 
+def _s(d: dict, key: str, default: str = "") -> str:
+    """Return a string, treating missing or null values as default."""
+    v = d.get(key)
+    return default if v is None else str(v)
+
+
+def _n(d: dict, key: str, default: float = 0):
+    """Return a number, treating missing or null values as default."""
+    v = d.get(key)
+    return default if v is None else v
+
+
 def _format_enrollment(e: dict) -> dict:
     """Format enrollment document for response."""
     return {
-        "id": e.get("id", ""),
-        "enrollment_code": e.get("enrollment_code", ""),
-        "plan_id": e.get("plan_id", ""),
-        "user_phone": e.get("user_phone", ""),
-        "user_name": e.get("user_name", ""),
-        "user_email": e.get("user_email", ""),
-        "status": e.get("status", "pending"),
+        "id": _s(e, "id"),
+        "enrollment_code": _s(e, "enrollment_code"),
+        "plan_id": _s(e, "plan_id"),
+        "user_phone": _s(e, "user_phone"),
+        "user_name": _s(e, "user_name"),
+        "user_email": _s(e, "user_email"),
+        "status": _s(e, "status", "pending"),
         "start_date": e.get("start_date"),
-        "total_installments": e.get("total_installments", 11),
-        "installments_paid": e.get("installments_paid", 0),
-        "installments_pending": e.get("installments_pending", 11),
-        "amount_paid": e.get("amount_paid", 0),
-        "remaining_amount": e.get("remaining_amount", 0),
-        "total_redeemable": e.get("total_redeemable", 0),
+        "total_installments": int(_n(e, "total_installments", 11)),
+        "installments_paid": int(_n(e, "installments_paid", 0)),
+        "installments_pending": int(_n(e, "installments_pending", 11)),
+        "amount_paid": float(_n(e, "amount_paid", 0)),
+        "remaining_amount": float(_n(e, "remaining_amount", 0)),
+        "total_redeemable": float(_n(e, "total_redeemable", 0)),
         "next_due_date": e.get("next_due_date"),
-        "total_withdrawn": e.get("total_withdrawn", 0),
+        "total_withdrawn": float(_n(e, "total_withdrawn", 0)),
         "approval_date": e.get("approval_date"),
         "approved_by": e.get("approved_by"),
         "rejection_reason": e.get("rejection_reason"),
-        "notes": e.get("notes", ""),
+        "notes": _s(e, "notes"),
         "created_at": _datetime_to_str(e.get("created_at")),
     }
 
@@ -273,43 +300,44 @@ def _format_enrollment(e: dict) -> dict:
 def _format_plan(p: dict) -> dict:
     """Format plan document for response."""
     return {
-        "id": p.get("id") or "",
+        "id": _s(p, "id"),
         "plan_code": p.get("plan_code"),
-        "name": p.get("name") or "",
-        "description": p.get("description") or "",
-        "monthly_amount": p.get("monthly_amount") or 0,
-        "duration_months": p.get("duration_months") or 11,
-        "bonus_months": p.get("bonus_months") or 1,
-        "total_redeemable": p.get("total_redeemable") or 0,
-        "joining_fee": p.get("joining_fee") or 0,
-        "processing_fee": p.get("processing_fee") or 0,
-        "late_fee": p.get("late_fee") or 0,
+        "name": _s(p, "name"),
+        "subtitle": _s(p, "subtitle"),
+        "description": _s(p, "description"),
+        "monthly_amount": float(_n(p, "monthly_amount", 0)),
+        "duration_months": int(_n(p, "duration_months", 11)),
+        "bonus_months": int(_n(p, "bonus_months", 1)),
+        "total_redeemable": float(_n(p, "total_redeemable", 0)),
+        "joining_fee": float(_n(p, "joining_fee", 0)),
+        "processing_fee": float(_n(p, "processing_fee", 0)),
+        "late_fee": float(_n(p, "late_fee", 0)),
         "start_date": p.get("start_date"),
         "end_date": p.get("end_date"),
-        "status": p.get("status") or "active",
-        "is_active": p.get("is_active", True),
+        "status": _s(p, "status", "active"),
+        "is_active": bool(p["is_active"]) if p.get("is_active") is not None else True,
         "banner_image": p.get("banner_image"),
         "thumbnail_image": p.get("thumbnail_image"),
-        "terms_conditions": p.get("terms_conditions") or "",
+        "terms_conditions": _s(p, "terms_conditions"),
     }
 
 
 def _format_installment(i: dict) -> dict:
     """Format installment document for response."""
     return {
-        "id": i.get("id", ""),
-        "enrollment_id": i.get("enrollment_id", ""),
-        "installment_number": i.get("installment_number", 0),
+        "id": _s(i, "id"),
+        "enrollment_id": _s(i, "enrollment_id"),
+        "installment_number": int(_n(i, "installment_number", 0)),
         "due_date": i.get("due_date"),
-        "amount_due": i.get("amount_due", 0),
-        "amount_paid": i.get("amount_paid", 0),
+        "amount_due": float(_n(i, "amount_due", 0)),
+        "amount_paid": float(_n(i, "amount_paid", 0)),
         "payment_date": i.get("payment_date"),
-        "payment_method": i.get("payment_method", "cash"),
-        "reference_number": i.get("reference_number", ""),
+        "payment_method": _s(i, "payment_method", "cash"),
+        "reference_number": _s(i, "reference_number"),
         "receipt_url": i.get("receipt_url"),
-        "status": i.get("status", "pending"),
-        "remarks": i.get("remarks", ""),
-        "recorded_by": i.get("recorded_by", ""),
+        "status": _s(i, "status", "pending"),
+        "remarks": _s(i, "remarks"),
+        "recorded_by": _s(i, "recorded_by"),
         "created_at": _datetime_to_str(i.get("created_at")),
     }
 
@@ -317,22 +345,22 @@ def _format_installment(i: dict) -> dict:
 def _format_withdrawal(w: dict) -> dict:
     """Format withdrawal document for response."""
     return {
-        "id": w.get("id", ""),
-        "enrollment_id": w.get("enrollment_id", ""),
-        "withdrawal_code": w.get("withdrawal_code", ""),
-        "amount": w.get("amount", 0),
-        "withdrawal_type": w.get("withdrawal_type", "full"),
-        "principal_amount": w.get("principal_amount", 0),
-        "bonus_amount": w.get("bonus_amount", 0),
-        "deductions": w.get("deductions", 0),
-        "net_amount": w.get("net_amount", 0),
-        "status": w.get("status", "pending"),
+        "id": _s(w, "id"),
+        "enrollment_id": _s(w, "enrollment_id"),
+        "withdrawal_code": _s(w, "withdrawal_code"),
+        "amount": float(_n(w, "amount", 0)),
+        "withdrawal_type": _s(w, "withdrawal_type", "full"),
+        "principal_amount": float(_n(w, "principal_amount", 0)),
+        "bonus_amount": float(_n(w, "bonus_amount", 0)),
+        "deductions": float(_n(w, "deductions", 0)),
+        "net_amount": float(_n(w, "net_amount", 0)),
+        "status": _s(w, "status", "pending"),
         "release_date": w.get("release_date"),
-        "transaction_reference": w.get("transaction_reference", ""),
-        "supporting_documents": w.get("supporting_documents", []),
-        "admin_notes": w.get("admin_notes", ""),
+        "transaction_reference": _s(w, "transaction_reference"),
+        "supporting_documents": w.get("supporting_documents") or [],
+        "admin_notes": _s(w, "admin_notes"),
         "approved_by": w.get("approved_by"),
-        "created_by": w.get("created_by", ""),
+        "created_by": _s(w, "created_by"),
         "created_at": _datetime_to_str(w.get("created_at")),
     }
 
@@ -340,14 +368,14 @@ def _format_withdrawal(w: dict) -> dict:
 def _format_ledger(l: dict) -> dict:
     """Format ledger entry for response."""
     return {
-        "id": l.get("id", ""),
-        "enrollment_id": l.get("enrollment_id", ""),
-        "transaction_type": l.get("transaction_type", ""),
-        "amount": l.get("amount", 0),
-        "running_balance": l.get("running_balance", 0),
-        "description": l.get("description", ""),
+        "id": _s(l, "id"),
+        "enrollment_id": _s(l, "enrollment_id"),
+        "transaction_type": _s(l, "transaction_type"),
+        "amount": float(_n(l, "amount", 0)),
+        "running_balance": float(_n(l, "running_balance", 0)),
+        "description": _s(l, "description"),
         "reference_id": l.get("reference_id"),
-        "recorded_by": l.get("recorded_by", ""),
+        "recorded_by": _s(l, "recorded_by"),
         "created_at": _datetime_to_str(l.get("created_at")),
     }
 
@@ -404,6 +432,7 @@ def request_enrollment(body: EnrollmentRequest, user_phone: str = Query(...)):
             "start_date": body.start_date,
             "notes": body.notes or "",
         })
+        _safe_notify(notify_enrollment, enrollment, "submitted")
         return _format_enrollment(enrollment)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -547,6 +576,7 @@ def admin_approve_enrollment(
         )
         if not enrollment:
             raise HTTPException(status_code=404, detail="Enrollment not found")
+        _safe_notify(notify_enrollment, enrollment, "approved")
         return _format_enrollment(enrollment)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -567,6 +597,7 @@ def admin_reject_enrollment(
         )
         if not enrollment:
             raise HTTPException(status_code=404, detail="Enrollment not found")
+        _safe_notify(notify_enrollment, enrollment, "rejected")
         return _format_enrollment(enrollment)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -587,6 +618,7 @@ def admin_cancel_enrollment(
         )
         if not enrollment:
             raise HTTPException(status_code=404, detail="Enrollment not found")
+        _safe_notify(notify_enrollment, enrollment, "cancelled")
         return _format_enrollment(enrollment)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -612,6 +644,9 @@ def admin_create_installment(
     """Record a new installment payment."""
     try:
         installment = installment_create(body.model_dump(), recorded_by=admin_email)
+        enrollment = enrollment_get(body.enrollment_id)
+        if enrollment and installment.get("status") == "paid":
+            _safe_notify(notify_installment, installment, enrollment)
         return _format_installment(installment)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -624,10 +659,18 @@ def admin_update_installment(
     admin_email: str = Query("admin"),
 ):
     """Update an installment record."""
+    previous = installment_get(installment_id)
     data = {k: v for k, v in body.model_dump().items() if v is not None}
     installment = installment_update(installment_id, data, updated_by=admin_email)
     if not installment:
         raise HTTPException(status_code=404, detail="Installment not found")
+    if (
+        installment.get("status") == "paid"
+        and (not previous or previous.get("status") != "paid")
+    ):
+        enrollment = enrollment_get(installment.get("enrollment_id", ""))
+        if enrollment:
+            _safe_notify(notify_installment, installment, enrollment)
     return _format_installment(installment)
 
 
@@ -651,6 +694,9 @@ def admin_create_withdrawal(
     """Create a new withdrawal/payout record."""
     try:
         withdrawal = withdrawal_create(body.model_dump(), created_by=admin_email)
+        enrollment = enrollment_get(body.enrollment_id)
+        if enrollment:
+            _safe_notify(notify_withdrawal, withdrawal, enrollment, "created")
         return _format_withdrawal(withdrawal)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -670,6 +716,7 @@ def admin_update_withdrawal_status(
         if body.admin_notes:
             kwargs["admin_notes"] = body.admin_notes
         
+        previous = withdrawal_get(withdrawal_id)
         withdrawal = withdrawal_update_status(
             withdrawal_id,
             status=body.status,
@@ -678,6 +725,15 @@ def admin_update_withdrawal_status(
         )
         if not withdrawal:
             raise HTTPException(status_code=404, detail="Withdrawal not found")
+        if not previous or previous.get("status") != withdrawal.get("status"):
+            enrollment = enrollment_get(withdrawal.get("enrollment_id", ""))
+            if enrollment:
+                _safe_notify(
+                    notify_withdrawal,
+                    withdrawal,
+                    enrollment,
+                    str(withdrawal.get("status") or ""),
+                )
         return _format_withdrawal(withdrawal)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

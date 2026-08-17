@@ -1,7 +1,7 @@
 // Categories and products for Shop. Admin panel can replace these with API later.
 
 export const METAL_TYPES = ['Gold', 'Silver', 'Diamond', 'Bronze']
-export const PURITIES = ['24K', '22K', '18K']
+export const PURITIES = ['24K', '22K', '18K', '14K']
 export const PRODUCT_TYPES = ['Ring', 'Necklace', 'Chain', 'Bracelet', 'Bangle', 'Earrings', 'Pendant', 'Anklet']
 
 export const SHOP_CATEGORIES = [
@@ -13,6 +13,7 @@ export const SHOP_CATEGORIES = [
       { id: 'gold-24k', name: '24 Karat Gold', slug: '24k' },
       { id: 'gold-22k', name: '22 Karat Gold', slug: '22k' },
       { id: 'gold-18k', name: '18 Karat Gold', slug: '18k' },
+      { id: 'gold-14k', name: '14 Karat Gold', slug: '14k' },
     ],
     products: ['Gold Rings', 'Gold Chains', 'Gold Bangles', 'Gold Necklaces', 'Gold Earrings'],
   },

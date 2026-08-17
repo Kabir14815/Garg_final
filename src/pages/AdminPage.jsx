@@ -28,13 +28,18 @@ import {
   createWithdrawal,
   updateWithdrawalStatus,
   getAdminWithdrawals,
+  sendAdminNotification,
+  getAdminNotifications,
+  getAdminCategoryTree,
+  getCategoryTree,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 } from '../api/client'
 import { useMetalRates } from '../context/MetalRatesContext'
 import { useAuth } from '../context/AuthContext'
 import {
-  METAL_TYPES,
   PURITIES,
-  PRODUCT_TYPES,
 } from '../data/shopData'
 import './AdminPage.css'
 
@@ -97,6 +102,207 @@ function AdminProductImages({ images, onChange, onError }) {
   )
 }
 
+// ─── Category helpers ────────────────────────────────────────────────────────
+
+function findCategoryPath(tree, targetId, path = []) {
+  if (!targetId || !Array.isArray(tree)) return null
+  for (const node of tree) {
+    const next = [...path, node]
+    if (node.id === targetId) return next
+    if (node.children?.length) {
+      const found = findCategoryPath(node.children, targetId, next)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// ─── Category tree editor ────────────────────────────────────────────────────
+
+function CategoryNodeRow({ node, depth, onAddChild, onRename, onToggle, onDelete }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(node.name)
+  const [adding, setAdding] = useState(false)
+  const [childName, setChildName] = useState('')
+
+  const saveRename = async () => {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === node.name) {
+      setEditing(false)
+      setName(node.name)
+      return
+    }
+    await onRename(node.id, trimmed)
+    setEditing(false)
+  }
+
+  const saveChild = async () => {
+    const trimmed = childName.trim()
+    if (!trimmed) return
+    await onAddChild(node.id, trimmed)
+    setChildName('')
+    setAdding(false)
+  }
+
+  return (
+    <div className="category-node" style={{ marginLeft: depth * 18 }}>
+      <div className={`category-node-row ${node.is_active === false ? 'inactive' : ''}`}>
+        <span className="category-depth-mark">{depth === 0 ? '◆' : '↳'}</span>
+        {editing ? (
+          <>
+            <input
+              className="category-inline-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && saveRename()}
+              autoFocus
+            />
+            <button type="button" className="btn-primary btn-sm-pad" onClick={saveRename}>Save</button>
+            <button type="button" className="btn-outline btn-sm-pad" onClick={() => { setEditing(false); setName(node.name) }}>Cancel</button>
+          </>
+        ) : (
+          <>
+            <strong>{node.name}</strong>
+            <span className="category-slug">/{node.slug}</span>
+            <div className="category-node-actions">
+              <button type="button" className="btn-outline btn-sm-pad" onClick={() => setEditing(true)}>Rename</button>
+              <button type="button" className="btn-outline btn-sm-pad" onClick={() => setAdding((v) => !v)}>+ Sub</button>
+              <button type="button" className="btn-outline btn-sm-pad" onClick={() => onToggle(node)}>
+                {node.is_active === false ? 'Activate' : 'Deactivate'}
+              </button>
+              <button type="button" className="btn-danger btn-sm-pad" onClick={() => onDelete(node)}>Delete</button>
+            </div>
+          </>
+        )}
+      </div>
+      {adding && (
+        <div className="category-add-row" style={{ marginLeft: 18 }}>
+          <input
+            className="category-inline-input"
+            placeholder="New subcategory name"
+            value={childName}
+            onChange={(e) => setChildName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && saveChild()}
+            autoFocus
+          />
+          <button type="button" className="btn-primary btn-sm-pad" onClick={saveChild}>Add</button>
+          <button type="button" className="btn-outline btn-sm-pad" onClick={() => setAdding(false)}>Cancel</button>
+        </div>
+      )}
+      {(node.children || []).map((child) => (
+        <CategoryNodeRow
+          key={child.id}
+          node={child}
+          depth={depth + 1}
+          onAddChild={onAddChild}
+          onRename={onRename}
+          onToggle={onToggle}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
+  )
+}
+
+function CategoryTreeEditor() {
+  const [tree, setTree] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [rootName, setRootName] = useState('')
+
+  const load = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    getAdminCategoryTree(true)
+      .then(setTree)
+      .catch((e) => setError(e.message || 'Failed to load categories'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const handleAddRoot = async () => {
+    const trimmed = rootName.trim()
+    if (!trimmed) return
+    try {
+      await createCategory({ name: trimmed, parentId: null })
+      setRootName('')
+      load()
+    } catch (e) {
+      setError(e.message || 'Failed to create category')
+    }
+  }
+
+  const handleAddChild = async (parentId, name) => {
+    await createCategory({ name, parentId })
+    load()
+  }
+
+  const handleRename = async (id, name) => {
+    await updateCategory(id, { name })
+    load()
+  }
+
+  const handleToggle = async (node) => {
+    await updateCategory(node.id, { isActive: node.is_active === false })
+    load()
+  }
+
+  const handleDelete = async (node) => {
+    if (!window.confirm(`Delete "${node.name}"? This only works if it has no children or products.`)) return
+    try {
+      await deleteCategory(node.id)
+      load()
+    } catch (e) {
+      setError(e.message || 'Delete failed')
+    }
+  }
+
+  return (
+    <section className="admin-section">
+      <div className="admin-section-header">
+        <div>
+          <h2>Categories</h2>
+          <p className="admin-section-sub">
+            Build nested groups (e.g. Gold → Women Collection → Rings). Products pick a leaf from this tree.
+          </p>
+        </div>
+      </div>
+      {error && <p className="admin-error">{error}</p>}
+      <div className="category-add-root">
+        <input
+          value={rootName}
+          onChange={(e) => setRootName(e.target.value)}
+          placeholder="New top-level category (e.g. Gold)"
+          onKeyDown={(e) => e.key === 'Enter' && handleAddRoot()}
+        />
+        <button type="button" className="btn-primary" onClick={handleAddRoot} disabled={!rootName.trim()}>
+          + Add root
+        </button>
+      </div>
+      {loading ? (
+        <p className="admin-muted">Loading categories…</p>
+      ) : tree.length === 0 ? (
+        <p className="admin-muted">No categories yet. Add a root category to get started.</p>
+      ) : (
+        <div className="category-tree">
+          {tree.map((node) => (
+            <CategoryNodeRow
+              key={node.id}
+              node={node}
+              depth={0}
+              onAddChild={handleAddChild}
+              onRename={handleRename}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 // ─── Shared product form (add + edit) ────────────────────────────────────────
 
 const emptyProduct = {
@@ -109,15 +315,106 @@ const emptyProduct = {
   type: 'Ring',
   diamondWeight: '',
   images: [],
+  categoryId: '',
+  categoryAncestors: [],
+}
+
+function ProductCategoryPicker({ tree, valueId, onChange }) {
+  const path = findCategoryPath(tree, valueId) || []
+  const levels = []
+  let nodes = tree || []
+  for (let i = 0; ; i++) {
+    if (!nodes.length && i === 0) break
+    levels.push({
+      options: nodes,
+      selectedId: path[i]?.id || '',
+    })
+    const selected = nodes.find((n) => n.id === (path[i]?.id || ''))
+    if (!selected || !(selected.children || []).length) break
+    nodes = selected.children
+  }
+  // Always show one empty next level if current selection has children already handled;
+  // if nothing selected at a level that has options, stop.
+  if (path.length && (path[path.length - 1].children || []).length) {
+    levels.push({ options: path[path.length - 1].children, selectedId: '' })
+  } else if (!path.length && (tree || []).length) {
+    // only roots shown
+  }
+
+  const setLevel = (levelIndex, id) => {
+    if (!id) {
+      // Clear from this level down
+      const parent = path[levelIndex - 1]
+      onChange(parent || null)
+      return
+    }
+    const options = levels[levelIndex]?.options || []
+    const node = options.find((n) => n.id === id)
+    if (node) onChange(node)
+  }
+
+  return (
+    <div className="category-cascade">
+      {levels.map((level, idx) => (
+        <div className="form-row" key={`cat-level-${idx}`}>
+          <label>{idx === 0 ? 'Category' : `Subgroup ${idx}`}</label>
+          <select
+            value={level.selectedId}
+            onChange={(e) => setLevel(idx, e.target.value)}
+            required={idx === 0}
+          >
+            <option value="">Select…</option>
+            {level.options.map((n) => (
+              <option key={n.id} value={n.id}>{n.name}</option>
+            ))}
+          </select>
+        </div>
+      ))}
+      {path.length > 0 && (
+        <p className="form-hint-inline">
+          Selected path: {path.map((p) => p.name).join(' → ')}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function ProductForm({ title, initial, onSave, onCancel, formError, onFormError }) {
   const [form, setForm] = useState(initial || emptyProduct)
+  const [tree, setTree] = useState([])
+
+  useEffect(() => {
+    getCategoryTree(true).then(setTree).catch(() => setTree([]))
+  }, [])
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
 
+  const handleCategoryPick = (node) => {
+    if (!node) {
+      setForm((f) => ({ ...f, categoryId: '', categoryAncestors: [] }))
+      return
+    }
+    const path = findCategoryPath(tree, node.id) || [node]
+    const root = path[0]
+    const leaf = path[path.length - 1]
+    const metalSlug = (root?.slug || root?.name || 'gold').toLowerCase()
+    const metalName = root?.name || 'Gold'
+    setForm((f) => ({
+      ...f,
+      categoryId: leaf.id,
+      categoryAncestors: path.map((p) => p.id),
+      category: metalSlug,
+      metalType: metalName,
+      type: path.length > 1 ? leaf.name : (f.type || 'Ring'),
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!form.categoryId) {
+      onFormError?.('Please select a category (and subgroup if needed)')
+      return
+    }
     const payload = {
       ...form,
       weight: Number(form.weight) || 0,
@@ -125,9 +422,16 @@ function ProductForm({ title, initial, onSave, onCancel, formError, onFormError 
       diamondWeight: form.diamondWeight ? Number(form.diamondWeight) : null,
       purity: form.purity || null,
       images: Array.isArray(form.images) ? form.images : [],
+      categoryId: form.categoryId,
+      categoryAncestors: form.categoryAncestors || [],
     }
     await onSave(payload)
   }
+
+  const isGold = (form.category || '').toLowerCase() === 'gold'
+    || (form.metalType || '').toLowerCase() === 'gold'
+  const isDiamond = (form.category || '').toLowerCase() === 'diamond'
+    || (form.metalType || '').toLowerCase() === 'diamond'
 
   return (
     <form className="admin-form product-form" onSubmit={handleSubmit}>
@@ -138,32 +442,15 @@ function ProductForm({ title, initial, onSave, onCancel, formError, onFormError 
         <label>Product name</label>
         <input value={form.name} onChange={(e) => set('name', e.target.value)} required />
       </div>
+
+      <ProductCategoryPicker
+        tree={tree}
+        valueId={form.categoryId}
+        onChange={handleCategoryPick}
+      />
+
       <div className="form-grid-2">
-        <div className="form-row">
-          <label>Category</label>
-          <select value={form.category} onChange={(e) => set('category', e.target.value)}>
-            {['gold', 'silver', 'diamond', 'bronze'].map((c) => (
-              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <label>Metal type</label>
-          <select value={form.metalType} onChange={(e) => set('metalType', e.target.value)}>
-            {METAL_TYPES.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <label>Product type</label>
-          <select value={form.type} onChange={(e) => set('type', e.target.value)}>
-            {PRODUCT_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
-        {form.category === 'gold' && (
+        {isGold && (
           <div className="form-row">
             <label>Purity</label>
             <select value={form.purity} onChange={(e) => set('purity', e.target.value)}>
@@ -178,7 +465,7 @@ function ProductForm({ title, initial, onSave, onCancel, formError, onFormError 
           <label>Weight (g)</label>
           <input type="number" step="0.01" min="0" value={form.weight} onChange={(e) => set('weight', e.target.value)} />
         </div>
-        {form.category === 'diamond' && (
+        {isDiamond && (
           <div className="form-row">
             <label>Diamond weight (ct)</label>
             <input type="number" step="0.01" min="0" value={form.diamondWeight} onChange={(e) => set('diamondWeight', e.target.value)} />
@@ -211,6 +498,7 @@ const emptyPlan = {
   durationMonths: 11,
   bonusMonths: 1,
   totalRedeemable: '',
+  subtitle: '',
   description: '',
   isActive: true,
 }
@@ -246,8 +534,12 @@ function KittyPlanForm({ title, initial, onSave, onCancel }) {
       <h3>{title}</h3>
       {err && <p className="admin-error">{err}</p>}
       <div className="form-row">
-        <label>Plan name</label>
-        <input value={form.name} onChange={(e) => set('name', e.target.value)} required placeholder="e.g. Gold Savings – ₹2,000/mo" />
+        <label>Group name</label>
+        <input value={form.name} onChange={(e) => set('name', e.target.value)} required placeholder="e.g. Ratnam group" />
+      </div>
+      <div className="form-row">
+        <label>Sub-heading</label>
+        <input value={form.subtitle || ''} onChange={(e) => set('subtitle', e.target.value)} placeholder="e.g. GOLD INVESTMENT PLAN" />
       </div>
       <div className="form-grid-3">
         <div className="form-row">
@@ -280,8 +572,8 @@ function KittyPlanForm({ title, initial, onSave, onCancel }) {
         )}
       </div>
       <div className="form-row">
-        <label>Description (optional)</label>
-        <textarea rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} />
+        <label>Description</label>
+        <textarea rows={5} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Full plan details shown to customers" />
       </div>
       <div className="form-row form-row-inline">
         <input type="checkbox" id="plan-active" checked={form.isActive} onChange={(e) => set('isActive', e.target.checked)} />
@@ -921,6 +1213,20 @@ export default function AdminPage() {
   const [installmentTarget, setInstallmentTarget] = useState(null)
   const [withdrawalTarget, setWithdrawalTarget] = useState(null)
 
+  // ── Notifications ──
+  const [notifTitle, setNotifTitle] = useState('')
+  const [notifBody, setNotifBody] = useState('')
+  const [notifAudience, setNotifAudience] = useState('all')
+  const [notifImage, setNotifImage] = useState('')
+  const [notifLink, setNotifLink] = useState('home')
+  const [notifProductId, setNotifProductId] = useState('')
+  const [notifSending, setNotifSending] = useState(false)
+  const [notifMessage, setNotifMessage] = useState('')
+  const [notifError, setNotifError] = useState(null)
+  const [notifHistory, setNotifHistory] = useState([])
+  const [notifDeviceCount, setNotifDeviceCount] = useState(0)
+  const [notifLoading, setNotifLoading] = useState(false)
+
   // ── Load products ──
   const loadProducts = useCallback(() => {
     setProductLoading(true)
@@ -936,27 +1242,43 @@ export default function AdminPage() {
   const loadKitty = useCallback(() => {
     setKittyLoading(true)
     setKittyError(null)
-    Promise.all([
+    Promise.allSettled([
       getKittyPlans(),
       getKittyMembers(),
       getAdminEnrollments(),
       getAdminEnrollmentStats(),
       getAdminWithdrawals(),
     ])
-      .then(([plans, members, enrollments, stats, withdrawals]) => {
-        setKittyPlans(plans)
-        setKittyMembers(members)
-        setKittyEnrollments(enrollments)
-        setKittyStats(stats)
-        setKittyWithdrawals(withdrawals)
+      .then(([plansR, membersR, enrollmentsR, statsR, withdrawalsR]) => {
+        if (plansR.status === 'fulfilled') setKittyPlans(plansR.value)
+        if (membersR.status === 'fulfilled') setKittyMembers(membersR.value)
+        if (enrollmentsR.status === 'fulfilled') setKittyEnrollments(enrollmentsR.value)
+        if (statsR.status === 'fulfilled') setKittyStats(statsR.value)
+        if (withdrawalsR.status === 'fulfilled') setKittyWithdrawals(withdrawalsR.value)
+        const failed = [plansR, membersR, enrollmentsR, statsR, withdrawalsR]
+          .find((r) => r.status === 'rejected')
+        if (failed) setKittyError(failed.reason?.message || 'Failed to load some kitty data')
       })
-      .catch((e) => setKittyError(e.message || 'Failed to load kitty data'))
       .finally(() => setKittyLoading(false))
   }, [])
 
   useEffect(() => { if (tab === 'kitty') loadKitty() }, [tab, loadKitty])
 
   useEffect(() => { if (tab === 'rates') setRatesForm({ ...rates }) }, [tab, rates])
+
+  const loadNotifications = useCallback(() => {
+    setNotifLoading(true)
+    setNotifError(null)
+    getAdminNotifications(20)
+      .then((data) => {
+        setNotifHistory(data.items)
+        setNotifDeviceCount(data.deviceCount)
+      })
+      .catch((e) => setNotifError(e.message || 'Failed to load notifications'))
+      .finally(() => setNotifLoading(false))
+  }, [])
+
+  useEffect(() => { if (tab === 'notifications') loadNotifications() }, [tab, loadNotifications])
 
   // ── Product handlers ──
   const handleSaveProduct = async (payload) => {
@@ -1109,6 +1431,40 @@ export default function AdminPage() {
     }
   }
 
+  const handleSendNotification = async (e) => {
+    e.preventDefault()
+    if (!notifTitle.trim() || !notifBody.trim()) {
+      setNotifError('Title and message are required')
+      return
+    }
+    setNotifSending(true)
+    setNotifError(null)
+    setNotifMessage('')
+    try {
+      await sendAdminNotification(
+        {
+          title: notifTitle.trim(),
+          body: notifBody.trim(),
+          audience: notifAudience,
+          imageUrl: notifImage.trim() || null,
+          deepLinkType: notifLink,
+          productId: notifLink === 'product' ? notifProductId.trim() : null,
+        },
+        user?.email,
+      )
+      setNotifMessage('Notification sent to app users.')
+      setNotifTitle('')
+      setNotifBody('')
+      setNotifImage('')
+      setNotifProductId('')
+      loadNotifications()
+    } catch (err) {
+      setNotifError(err.message || 'Failed to send notification')
+    } finally {
+      setNotifSending(false)
+    }
+  }
+
   const filteredMembers = statusFilter === 'all'
     ? kittyMembers
     : kittyMembers.filter((m) => m.status === statusFilter)
@@ -1145,11 +1501,17 @@ export default function AdminPage() {
         <button type="button" className={tab === 'products' ? 'active' : ''} onClick={() => setTab('products')}>
           <span className="tab-icon">📦</span> Products
         </button>
+        <button type="button" className={tab === 'categories' ? 'active' : ''} onClick={() => setTab('categories')}>
+          <span className="tab-icon">🗂️</span> Categories
+        </button>
         <button type="button" className={tab === 'rates' ? 'active' : ''} onClick={() => setTab('rates')}>
           <span className="tab-icon">📈</span> Metal Rates
         </button>
         <button type="button" className={tab === 'kitty' ? 'active' : ''} onClick={() => setTab('kitty')}>
           <span className="tab-icon">🪙</span> Kitty Scheme
+        </button>
+        <button type="button" className={tab === 'notifications' ? 'active' : ''} onClick={() => setTab('notifications')}>
+          <span className="tab-icon">🔔</span> Notifications
         </button>
       </nav>
 
@@ -1197,6 +1559,8 @@ export default function AdminPage() {
                 type: editingProduct.type || 'Ring',
                 diamondWeight: editingProduct.diamondWeight ?? '',
                 images: editingProduct.images ?? [],
+                categoryId: editingProduct.categoryId || '',
+                categoryAncestors: editingProduct.categoryAncestors || [],
               }}
               onSave={handleSaveProduct}
               onCancel={() => { setFormMode(null); setEditingProduct(null); setProductError(null) }}
@@ -1256,6 +1620,9 @@ export default function AdminPage() {
           )}
         </section>
       )}
+
+      {/* ── Categories Tab ── */}
+      {tab === 'categories' && <CategoryTreeEditor />}
 
       {/* ── Metal Rates Tab ── */}
       {tab === 'rates' && (
@@ -1595,6 +1962,8 @@ export default function AdminPage() {
                         monthlyAmount: editingPlan.monthlyAmount,
                         durationMonths: editingPlan.durationMonths,
                         bonusMonths: editingPlan.bonusMonths,
+                        totalRedeemable: editingPlan.totalRedeemable ?? '',
+                        subtitle: editingPlan.subtitle || '',
                         description: editingPlan.description,
                         isActive: editingPlan.isActive,
                       }}
@@ -1616,6 +1985,7 @@ export default function AdminPage() {
                             : <span className="status-badge status-cancelled">inactive</span>
                           }
                         </div>
+                        {plan.subtitle && <p className="plan-subtitle">{plan.subtitle}</p>}
                         <div className="plan-card-amounts">
                           <div className="plan-amount-item">
                             <span>Monthly</span>
@@ -1795,6 +2165,134 @@ export default function AdminPage() {
                 </div>
               )}
             </>
+          )}
+        </section>
+      )}
+
+      {/* ── Notifications Tab ── */}
+      {tab === 'notifications' && (
+        <section className="admin-section">
+          <div className="admin-section-header">
+            <div>
+              <h2>Push notifications</h2>
+              <p className="admin-section-sub">
+                Send a message to the Garg Jewellers iOS and Android apps.
+                {notifDeviceCount > 0
+                  ? ` ${notifDeviceCount} device${notifDeviceCount === 1 ? '' : 's'} registered.`
+                  : ' Devices register when customers open the app and allow notifications.'}
+              </p>
+            </div>
+          </div>
+
+          {notifError && <p className="admin-error">{notifError}</p>}
+          {notifMessage && <p className="admin-msg success">{notifMessage}</p>}
+
+          <form className="admin-form" onSubmit={handleSendNotification}>
+            <h3>Compose</h3>
+            <div className="form-row">
+              <label>Title</label>
+              <input
+                value={notifTitle}
+                onChange={(e) => setNotifTitle(e.target.value)}
+                maxLength={80}
+                placeholder="New gold collection"
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label>Message</label>
+              <textarea
+                value={notifBody}
+                onChange={(e) => setNotifBody(e.target.value)}
+                maxLength={240}
+                placeholder="22K bangles now in store. Visit today."
+                required
+              />
+            </div>
+            <div className="form-grid-2">
+              <div className="form-row">
+                <label>Audience</label>
+                <select value={notifAudience} onChange={(e) => setNotifAudience(e.target.value)}>
+                  <option value="all">All app users</option>
+                  <option value="kitty">Kitty members (logged-in)</option>
+                </select>
+              </div>
+              <div className="form-row">
+                <label>Opens in app</label>
+                <select value={notifLink} onChange={(e) => setNotifLink(e.target.value)}>
+                  <option value="home">Home</option>
+                  <option value="shop">Shop</option>
+                  <option value="rates">Metal rates</option>
+                  <option value="kitty">Kitty</option>
+                  <option value="product">Product</option>
+                </select>
+              </div>
+            </div>
+            {notifLink === 'product' && (
+              <div className="form-row">
+                <label>Product</label>
+                <select value={notifProductId} onChange={(e) => setNotifProductId(e.target.value)}>
+                  <option value="">Select a product</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="form-row">
+              <label>Image URL (optional)</label>
+              <input
+                value={notifImage}
+                onChange={(e) => setNotifImage(e.target.value)}
+                placeholder="https://…"
+              />
+            </div>
+            <button type="submit" className="btn-primary" disabled={notifSending}>
+              {notifSending ? 'Sending…' : 'Send notification'}
+            </button>
+          </form>
+
+          <div className="admin-section-header" style={{ marginTop: '2rem' }}>
+            <div>
+              <h2>Recent sends</h2>
+              <p className="admin-section-sub">Last 20 notifications</p>
+            </div>
+          </div>
+
+          {notifLoading && <p className="admin-section-sub">Loading…</p>}
+          {!notifLoading && notifHistory.length === 0 && (
+            <div className="admin-empty">No notifications sent yet.</div>
+          )}
+          {notifHistory.length > 0 && (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Audience</th>
+                    <th>Status</th>
+                    <th>Sent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {notifHistory.map((n) => (
+                    <tr key={n.id}>
+                      <td>
+                        <div className="member-name">{n.title}</div>
+                        <div className="member-contact">{n.body}</div>
+                      </td>
+                      <td>{n.audience === 'kitty' ? 'Kitty' : 'All users'}</td>
+                      <td>
+                        <span className={`notif-status ${n.status}`}>
+                          {n.status}{n.error ? ` — ${n.error}` : ''}
+                        </span>
+                      </td>
+                      <td>{n.createdAt ? new Date(n.createdAt).toLocaleString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       )}

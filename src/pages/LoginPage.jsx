@@ -1,194 +1,73 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import './LoginPage.css'
 
-// ─── OTP Countdown ───────────────────────────────────────────────────────────
-
-function OTPCountdown({ seconds, onExpire }) {
-  const [remaining, setRemaining] = useState(seconds)
-
-  useEffect(() => {
-    setRemaining(seconds)
-    if (seconds <= 0) return
-    const id = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) { clearInterval(id); onExpire?.(); return 0 }
-        return r - 1
-      })
-    }, 1000)
-    return () => clearInterval(id)
-  }, [seconds])
-
-  if (remaining <= 0) return null
-  const m = Math.floor(remaining / 60)
-  const s = remaining % 60
-  return (
-    <span className="otp-countdown">
-      OTP expires in {m}:{String(s).padStart(2, '0')}
-    </span>
-  )
-}
-
-// ─── Phone + OTP Login ────────────────────────────────────────────────────────
+// ─── Phone + Password Login ───────────────────────────────────────────────────
 
 function PhoneLoginForm({ onSuccess }) {
-  const { sendOtp, loginWithPhone } = useAuth()
-  const [step, setStep] = useState('phone')  // 'phone' | 'otp'
-  const [name, setName] = useState('')
+  const { loginWithPhonePassword } = useAuth()
   const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [devOtp, setDevOtp] = useState(null)
-  const [ttl, setTtl] = useState(0)
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const otpRef = useRef(null)
 
-  const handleSendOtp = async (e) => {
-    e.preventDefault()
-    if (!phone.trim() || !name.trim()) return
-    setError('')
-    setSubmitting(true)
-    try {
-      const res = await sendOtp(phone.trim())
-      setTtl(res.expires_in || 300)
-      setDevOtp(res.dev_otp || null)
-      setOtp('')
-      setStep('otp')
-      setTimeout(() => otpRef.current?.focus(), 100)
-    } catch (err) {
-      setError(err.body?.detail || err.message || 'Failed to send OTP')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleVerifyOtp = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSubmitting(true)
     try {
-      await loginWithPhone(phone.trim(), otp.trim(), name.trim())
+      await loginWithPhonePassword(phone.trim(), password)
       onSuccess('/dashboard')
     } catch (err) {
-      setError(err.body?.detail || err.message || 'Invalid OTP')
+      setError(err.body?.detail || err.message || 'Invalid phone number or password')
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const handleOtpChange = (e) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 6)
-    setOtp(val)
   }
 
   return (
-    <div>
-      <AnimatePresence mode="wait">
-        {step === 'phone' ? (
-          <motion.form
-            key="phone-step"
-            onSubmit={handleSendOtp}
-            className="login-form"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.22 }}
-          >
-            {error && <p className="login-error" role="alert">{error}</p>}
-            <div className="form-group">
-              <label htmlFor="cust-name">Full name <span className="required-star">*</span></label>
-              <input
-                id="cust-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
-                required
-                autoComplete="name"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="phone">Mobile number <span className="required-star">*</span></label>
-              <div className="phone-input-wrap">
-                <span className="phone-prefix">+91</span>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="98765 43210"
-                  required
-                  autoComplete="tel"
-                  maxLength={10}
-                  className="phone-input"
-                />
-              </div>
-              <span className="form-hint">We'll send a 6-digit OTP to verify your number.</span>
-            </div>
-            <button type="submit" className="login-btn" disabled={submitting || phone.length < 10 || !name.trim()}>
-              {submitting ? 'Sending OTP…' : 'Get OTP'}
-            </button>
-          </motion.form>
-        ) : (
-          <motion.form
-            key="otp-step"
-            onSubmit={handleVerifyOtp}
-            className="login-form"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.22 }}
-          >
-            {error && <p className="login-error" role="alert">{error}</p>}
-            <div className="otp-sent-notice">
-              <span>OTP sent to <strong>+91 {phone}</strong></span>
-              <button type="button" className="otp-change-btn" onClick={() => { setStep('phone'); setError('') }}>
-                Change
-              </button>
-            </div>
-
-            {devOtp && (
-              <div className="dev-otp-badge">
-                <span className="dev-badge-label">DEV MODE</span>
-                <span>OTP: <strong>{devOtp}</strong></span>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label htmlFor="otp">6-digit OTP</label>
-              <input
-                ref={otpRef}
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                value={otp}
-                onChange={handleOtpChange}
-                placeholder="• • • • • •"
-                required
-                className="otp-input"
-                autoComplete="one-time-code"
-              />
-              <div className="otp-meta">
-                <OTPCountdown seconds={ttl} onExpire={() => setStep('phone')} />
-                <button
-                  type="button"
-                  className="otp-resend-btn"
-                  onClick={() => { setStep('phone'); setError('') }}
-                >
-                  Resend OTP
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" className="login-btn" disabled={submitting || otp.length !== 6}>
-              {submitting ? 'Verifying…' : 'Verify & Continue'}
-            </button>
-          </motion.form>
-        )}
-      </AnimatePresence>
-    </div>
+    <form onSubmit={handleSubmit} className="login-form">
+      {error && <p className="login-error" role="alert">{error}</p>}
+      <div className="form-group">
+        <label htmlFor="phone">Mobile number <span className="required-star">*</span></label>
+        <div className="phone-input-wrap">
+          <span className="phone-prefix">+91</span>
+          <input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+            placeholder="98765 43210"
+            required
+            autoComplete="tel"
+            inputMode="numeric"
+            maxLength={10}
+            className="phone-input"
+          />
+        </div>
+      </div>
+      <div className="form-group">
+        <label htmlFor="customer-password">Password <span className="required-star">*</span></label>
+        <input
+          id="customer-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          required
+          autoComplete="current-password"
+        />
+      </div>
+      <button
+        type="submit"
+        className="login-btn"
+        disabled={submitting || phone.length !== 10 || !password}
+      >
+        {submitting ? 'Logging in…' : 'Login'}
+      </button>
+    </form>
   )
 }
 
@@ -313,7 +192,7 @@ export default function LoginPage() {
               transition={{ duration: 0.18 }}
             >
               <p className="login-tab-desc">
-                Enter your registered mobile number to access your savings dashboard.
+                Enter your registered mobile number and password to access your savings dashboard.
               </p>
               <PhoneLoginForm onSuccess={handleSuccess} />
             </motion.div>

@@ -59,6 +59,9 @@ from app.store import (
 from app.live_rates import refresh_if_stale
 from app.upload_routes import router as upload_router, UPLOAD_ROOT
 from app.kitty_routes import public_router as kitty_public_router, admin_router as kitty_admin_router
+from app.category_routes import public_router as category_public_router, admin_router as category_admin_router
+from app.notification_routes import router as notification_router
+from app.fcm import init_firebase
 
 app = FastAPI(title="Garg Jewellers API")
 
@@ -108,6 +111,16 @@ def on_startup():
         seed_kitty_plans()
     except Exception as e:
         print(f"⚠ Failed to seed kitty plans: {e}")
+    try:
+        from app.category_store import seed_categories_and_backfill_products
+        result = seed_categories_and_backfill_products()
+        print(f"✓ Categories: {result}")
+    except Exception as e:
+        print(f"⚠ Failed to seed categories: {e}")
+    try:
+        init_firebase()
+    except Exception as e:
+        print(f"⚠ Firebase init skipped: {e}")
 
 
 _cors_env = os.getenv("CORS_ORIGINS", "").strip()
@@ -136,6 +149,9 @@ app.add_middleware(
 app.include_router(upload_router)
 app.include_router(kitty_public_router)
 app.include_router(kitty_admin_router)
+app.include_router(category_public_router)
+app.include_router(category_admin_router)
+app.include_router(notification_router)
 
 UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 (UPLOAD_ROOT / "products").mkdir(parents=True, exist_ok=True)

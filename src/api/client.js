@@ -94,6 +94,8 @@ function productFromApi(p) {
     metalType: p.metal_type,
     diamondWeight: p.diamond_weight ?? null,
     images: (p.images ?? []).map(toPublicImageUrl),
+    categoryId: p.category_id ?? null,
+    categoryAncestors: p.category_ancestors ?? [],
   }
 }
 
@@ -108,6 +110,8 @@ function productToApi(p) {
     product_type: p.type || p.product_type || 'Ring',
     diamond_weight: p.diamondWeight ?? null,
     images: (Array.isArray(p.images) ? p.images : []).map(toApiImagePath),
+    category_id: p.categoryId || null,
+    category_ancestors: Array.isArray(p.categoryAncestors) ? p.categoryAncestors : [],
   }
 }
 
@@ -141,6 +145,45 @@ export async function deleteProduct(id) {
   await request(`/api/products/${id}`, { method: 'DELETE' })
 }
 
+// Nested categories
+export async function getCategoryTree(activeOnly = true) {
+  return request(`/api/categories?active_only=${activeOnly ? 'true' : 'false'}`)
+}
+
+export async function getAdminCategoryTree(includeInactive = true) {
+  return request(`/api/admin/categories?include_inactive=${includeInactive ? 'true' : 'false'}`)
+}
+
+export async function createCategory(data) {
+  return request('/api/admin/categories', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: data.name,
+      slug: data.slug || undefined,
+      parent_id: data.parentId || null,
+      sort_order: data.sortOrder,
+      is_active: data.isActive !== false,
+    }),
+  })
+}
+
+export async function updateCategory(id, data) {
+  const body = {}
+  if (data.name !== undefined) body.name = data.name
+  if (data.slug !== undefined) body.slug = data.slug
+  if (data.parentId !== undefined) body.parent_id = data.parentId
+  if (data.sortOrder !== undefined) body.sort_order = data.sortOrder
+  if (data.isActive !== undefined) body.is_active = data.isActive
+  return request(`/api/admin/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function deleteCategory(id) {
+  await request(`/api/admin/categories/${id}`, { method: 'DELETE' })
+}
+
 // Auth — email/password (admin)
 export async function login(email, password) {
   return request('/api/auth/login', {
@@ -156,18 +199,11 @@ export async function register(email, password, name) {
   })
 }
 
-// Auth — phone / OTP (customers)
-export async function sendOtp(phone) {
-  return request('/api/auth/send-otp', {
+// Auth — phone/password (customers)
+export async function loginWithPassword(identifier, password) {
+  return request('/api/auth/login/password', {
     method: 'POST',
-    body: JSON.stringify({ phone }),
-  })
-}
-
-export async function verifyOtp(phone, otp) {
-  return request('/api/auth/verify-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phone, otp }),
+    body: JSON.stringify({ identifier, password }),
   })
 }
 
@@ -201,6 +237,7 @@ function kittyPlanFromApi(p) {
     durationMonths: p.duration_months,
     bonusMonths: p.bonus_months,
     totalRedeemable: p.total_redeemable,
+    subtitle: p.subtitle ?? '',
     description: p.description ?? '',
     isActive: p.is_active,
   }
@@ -213,6 +250,7 @@ function kittyPlanToApi(p) {
     duration_months: Number(p.durationMonths),
     bonus_months: Number(p.bonusMonths),
     total_redeemable: p.totalRedeemable ? Number(p.totalRedeemable) : null,
+    subtitle: p.subtitle || '',
     description: p.description || null,
     is_active: p.isActive,
   }
@@ -581,6 +619,45 @@ export async function addLedgerAdjustment(data) {
       transaction_type: data.transactionType || 'adjustment',
     }),
   })
+}
+
+// ─── Push notifications ───────────────────────────────────────────────────
+
+export async function sendAdminNotification(payload, adminEmail) {
+  const params = new URLSearchParams()
+  if (adminEmail) params.append('admin_email', adminEmail)
+  const qs = params.toString()
+  return request(`/api/admin/notifications${qs ? `?${qs}` : ''}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      title: payload.title,
+      body: payload.body,
+      audience: payload.audience || 'all',
+      image_url: payload.imageUrl || null,
+      deep_link_type: payload.deepLinkType || 'home',
+      product_id: payload.productId || null,
+    }),
+  })
+}
+
+export async function getAdminNotifications(limit = 20) {
+  const data = await request(`/api/admin/notifications?limit=${limit}`)
+  return {
+    deviceCount: data.device_count ?? 0,
+    items: (data.items || []).map((n) => ({
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      audience: n.audience,
+      imageUrl: n.image_url || null,
+      data: n.data || {},
+      sentBy: n.sent_by,
+      fcmMessageId: n.fcm_message_id,
+      status: n.status,
+      error: n.error,
+      createdAt: n.created_at,
+    })),
+  }
 }
 
 /** Upload one product image; returns public path e.g. /uploads/products/….jpg (dev: proxied to API). */

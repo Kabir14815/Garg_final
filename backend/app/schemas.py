@@ -1,17 +1,19 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 
 class ProductBase(BaseModel):
     name: str
-    category: str  # gold, silver, diamond, bronze
+    category: str  # gold, silver, diamond, bronze (legacy metal bucket)
     weight: float = 0
     making_charges: float = 0
     metal_type: str  # Gold, Silver, Diamond, Bronze
-    purity: Optional[str] = None  # 24K, 22K, 18K for gold
+    purity: Optional[str] = None  # 24K, 22K, 18K, 14K for gold
     product_type: str = "Ring"  # Ring, Necklace, Chain, etc.
     diamond_weight: Optional[float] = None  # for diamond items
     images: List[str] = []
+    category_id: Optional[str] = None  # leaf node in nested category tree
+    category_ancestors: List[str] = []  # path including leaf for filtering
 
 
 class ProductCreate(ProductBase):
@@ -28,6 +30,8 @@ class ProductUpdate(BaseModel):
     product_type: Optional[str] = None
     diamond_weight: Optional[float] = None
     images: Optional[List[str]] = None
+    category_id: Optional[str] = None
+    category_ancestors: Optional[List[str]] = None
 
 
 class ProductResponse(ProductBase):
@@ -207,6 +211,7 @@ class KittyPlanBase(BaseModel):
     monthly_amount: float
     duration_months: int = 11
     bonus_months: int = 1
+    subtitle: Optional[str] = None
     description: Optional[str] = None
     is_active: bool = True
 
@@ -220,6 +225,7 @@ class KittyPlanUpdate(BaseModel):
     monthly_amount: Optional[float] = None
     duration_months: Optional[int] = None
     bonus_months: Optional[int] = None
+    subtitle: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
     total_redeemable: Optional[float] = None  # Admin can override the calculated value
@@ -281,3 +287,57 @@ class KittyMemberWithPlan(KittyMemberResponse):
     plan: Optional[KittyPlanResponse] = None
     total_saved: float = 0
     total_redeemable: float = 0
+
+
+# ─── Push notifications ───────────────────────────────────────────────────────
+
+class DeviceRegisterRequest(BaseModel):
+    token: str
+    platform: str = "unknown"  # android | ios
+    user_id: Optional[str] = None
+    user_email: Optional[str] = None
+
+
+class DeviceRegisterResponse(BaseModel):
+    ok: bool = True
+    token: str
+
+
+class DeviceUnregisterRequest(BaseModel):
+    token: str
+
+
+class SendNotificationRequest(BaseModel):
+    title: str
+    body: str
+    audience: str = "all"  # all | kitty
+    image_url: Optional[str] = None
+    deep_link_type: str = "home"  # home | shop | rates | kitty | product
+    product_id: Optional[str] = None
+
+
+class SendNotificationResponse(BaseModel):
+    ok: bool = True
+    id: str
+    fcm_message_id: Optional[str] = None
+    audience: str = "all"
+    device_count: int = 0
+
+
+class NotificationLogResponse(BaseModel):
+    id: str
+    title: str
+    body: str
+    audience: str = "all"
+    image_url: Optional[str] = None
+    data: Dict[str, Any] = {}
+    sent_by: str = ""
+    fcm_message_id: Optional[str] = None
+    status: str = "sent"
+    error: Optional[str] = None
+    created_at: str = ""
+
+
+class NotificationListResponse(BaseModel):
+    device_count: int = 0
+    items: List[NotificationLogResponse] = []

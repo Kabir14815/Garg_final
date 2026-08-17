@@ -9,6 +9,7 @@ backend/uploads/
 
 # Python
 backend/venv/
+backend/firebase-admin.json
 __pycache__/
 *.py[cod]
 *.pyo
@@ -16,6 +17,8 @@ __pycache__/
 *.so
 .env
 .venv/
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
 
 # IDE
 .idea/

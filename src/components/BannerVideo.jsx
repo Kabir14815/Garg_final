@@ -65,10 +65,10 @@ export default function BannerVideo() {
           className="banner-video-cta banner-video-cta-whatsapp"
         >
           <span aria-hidden>💬</span>
-          Connect with us on WhatsApp
+          CONNECT WITH US ON WHATSAPP
         </a>
         <span className="banner-video-cta">
-          Hi! Welcome to The House of Garg
+          HI! WELCOME TO THE HOUSE OF GARG
         </span>
       </div>
     </section>

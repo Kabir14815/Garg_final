@@ -104,6 +104,7 @@ def plan_create(data: dict, created_by: str) -> dict:
     doc = {
         "plan_code": plan_code,
         "name": data["name"],
+        "subtitle": data.get("subtitle") or "",
         "description": data.get("description") or "",
         "monthly_amount": float(data["monthly_amount"]),
         "duration_months": int(data.get("duration_months") or 11),
@@ -147,7 +148,7 @@ def plan_update(plan_id: str, data: dict, updated_by: str) -> Optional[dict]:
     
     update_fields = {}
     allowed = [
-        "name", "description", "monthly_amount", "duration_months", "bonus_months",
+        "name", "subtitle", "description", "monthly_amount", "duration_months", "bonus_months",
         "joining_fee", "processing_fee", "late_fee", "start_date", "end_date",
         "status", "is_active", "banner_image", "thumbnail_image", "terms_conditions", "plan_code"
     ]

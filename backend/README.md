@@ -24,6 +24,10 @@ Docs: http://localhost:10000/docs
 - **Products:** `GET/POST /api/products`, `GET/PUT/DELETE /api/products/{id}`
 - **Metal rates:** `GET/PUT /api/metal-rates`
 - **Auth:** `POST /api/auth/login`, `POST /api/auth/register`
+- **Devices:** `POST /api/devices/register`, `POST /api/devices/unregister`
+- **Admin push:** `POST /api/admin/notifications`, `GET /api/admin/notifications`
+
+Push notifications need `FIREBASE_SERVICE_ACCOUNT_JSON` (full service-account JSON) or `FIREBASE_SERVICE_ACCOUNT_FILE`. See `.env.example`.
 
 When metal rates are updated via `PUT /api/metal-rates`, the frontend fetches the new rates and all product prices (computed from weight × rate + making charges + GST) update automatically.
 
