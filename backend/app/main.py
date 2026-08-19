@@ -61,6 +61,7 @@ from app.upload_routes import router as upload_router, UPLOAD_ROOT
 from app.kitty_routes import public_router as kitty_public_router, admin_router as kitty_admin_router
 from app.category_routes import public_router as category_public_router, admin_router as category_admin_router
 from app.notification_routes import router as notification_router
+from app.page_routes import public_router as page_public_router, admin_router as page_admin_router
 from app.fcm import init_firebase
 
 app = FastAPI(title="Garg Jewellers API")
@@ -121,6 +122,12 @@ def on_startup():
         init_firebase()
     except Exception as e:
         print(f"⚠ Firebase init skipped: {e}")
+    try:
+        from app.page_store import seed_pages
+        seed_pages()
+        print("✓ Legal pages seeded")
+    except Exception as e:
+        print(f"⚠ Failed to seed legal pages: {e}")
 
 
 _cors_env = os.getenv("CORS_ORIGINS", "").strip()
@@ -152,6 +159,8 @@ app.include_router(kitty_admin_router)
 app.include_router(category_public_router)
 app.include_router(category_admin_router)
 app.include_router(notification_router)
+app.include_router(page_public_router)
+app.include_router(page_admin_router)
 
 UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 (UPLOAD_ROOT / "products").mkdir(parents=True, exist_ok=True)

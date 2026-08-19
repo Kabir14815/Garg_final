@@ -61,6 +61,11 @@ export default function Footer() {
         <p>© {new Date().getFullYear()} The House of Garg · Garg Jewellers
           {user?.isAdmin && <> · <Link to="/admin" className="footer-admin-link">Admin</Link></>}
         </p>
+        <p className="footer-legal">
+          <Link to="/privacy">Privacy Policy</Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/terms">Terms of Service</Link>
+        </p>
       </div>
     </footer>
   )

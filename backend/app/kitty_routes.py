@@ -280,16 +280,16 @@ def _format_enrollment(e: dict) -> dict:
         "user_name": _s(e, "user_name"),
         "user_email": _s(e, "user_email"),
         "status": _s(e, "status", "pending"),
-        "start_date": e.get("start_date"),
+        "start_date": _datetime_to_str(e.get("start_date")),
         "total_installments": int(_n(e, "total_installments", 11)),
         "installments_paid": int(_n(e, "installments_paid", 0)),
         "installments_pending": int(_n(e, "installments_pending", 11)),
         "amount_paid": float(_n(e, "amount_paid", 0)),
         "remaining_amount": float(_n(e, "remaining_amount", 0)),
         "total_redeemable": float(_n(e, "total_redeemable", 0)),
-        "next_due_date": e.get("next_due_date"),
+        "next_due_date": _datetime_to_str(e.get("next_due_date")),
         "total_withdrawn": float(_n(e, "total_withdrawn", 0)),
-        "approval_date": e.get("approval_date"),
+        "approval_date": _datetime_to_str(e.get("approval_date")),
         "approved_by": e.get("approved_by"),
         "rejection_reason": e.get("rejection_reason"),
         "notes": _s(e, "notes"),
@@ -405,11 +405,15 @@ def get_public_plan(plan_id: str):
 
 
 @public_router.post("/enroll", response_model=EnrollmentResponse)
-def request_enrollment(body: EnrollmentRequest, user_phone: str = Query(...)):
+def request_enrollment(body: EnrollmentRequest, user_phone: Optional[str] = Query(None)):
     """Request enrollment in a kitty plan. Requires phone auth.
     
     The enrollment starts in 'pending' status and must be approved by admin.
     """
+    phone = (user_phone or body.user_phone or "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+
     plan = plan_get(body.plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -418,7 +422,7 @@ def request_enrollment(body: EnrollmentRequest, user_phone: str = Query(...)):
         raise HTTPException(status_code=400, detail="This plan is not available for enrollment")
     
     # Check if user already has pending/active enrollment in this plan
-    existing = enrollment_list(user_phone=user_phone, plan_id=body.plan_id)
+    existing = enrollment_list(user_phone=phone, plan_id=body.plan_id)
     active_enrollments = [e for e in existing if e["status"] in ["pending", "active"]]
     if active_enrollments:
         raise HTTPException(status_code=400, detail="You already have an active or pending enrollment in this plan")
@@ -426,7 +430,7 @@ def request_enrollment(body: EnrollmentRequest, user_phone: str = Query(...)):
     try:
         enrollment = enrollment_create({
             "plan_id": body.plan_id,
-            "user_phone": user_phone,
+            "user_phone": phone,
             "user_name": body.user_name,
             "user_email": body.user_email or "",
             "start_date": body.start_date,

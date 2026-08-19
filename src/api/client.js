@@ -660,6 +660,44 @@ export async function getAdminNotifications(limit = 20) {
   }
 }
 
+// ─── Legal pages (privacy / terms) ────────────────────────────────────────
+
+export async function getPage(slug) {
+  const data = await request(`/api/pages/${slug}`)
+  return {
+    slug: data.slug,
+    title: data.title || '',
+    body: data.body || '',
+    updatedAt: data.updated_at || '',
+  }
+}
+
+export async function getPages() {
+  const data = await request('/api/pages')
+  return (data || []).map((p) => ({
+    slug: p.slug,
+    title: p.title || '',
+    body: p.body || '',
+    updatedAt: p.updated_at || '',
+  }))
+}
+
+export async function updateAdminPage(slug, payload) {
+  const data = await request(`/api/admin/pages/${slug}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      title: payload.title,
+      body: payload.body,
+    }),
+  })
+  return {
+    slug: data.slug,
+    title: data.title || '',
+    body: data.body || '',
+    updatedAt: data.updated_at || '',
+  }
+}
+
 /** Upload one product image; returns public path e.g. /uploads/products/….jpg (dev: proxied to API). */
 export async function uploadProductImage(file) {
   const url = `${API_BASE}/api/uploads/product-image`

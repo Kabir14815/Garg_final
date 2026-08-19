@@ -86,6 +86,10 @@ def get_categories_collection() -> Collection:
     return get_db()["categories"]
 
 
+def get_pages_collection() -> Collection:
+    return get_db()["pages"]
+
+
 # ─── Index Setup ──────────────────────────────────────────────────────────────
 
 def ensure_indexes():

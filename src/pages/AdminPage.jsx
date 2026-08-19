@@ -9,6 +9,7 @@ import {
   updateMetalRates,
   uploadProductImage,
   getKittyPlans,
+  getAdminKittyPlans,
   createKittyPlan,
   updateKittyPlan,
   deleteKittyPlan,
@@ -30,6 +31,8 @@ import {
   getAdminWithdrawals,
   sendAdminNotification,
   getAdminNotifications,
+  getPages,
+  updateAdminPage,
   getAdminCategoryTree,
   getCategoryTree,
   createCategory,
@@ -1227,6 +1230,16 @@ export default function AdminPage() {
   const [notifDeviceCount, setNotifDeviceCount] = useState(0)
   const [notifLoading, setNotifLoading] = useState(false)
 
+  // ── Legal pages ──
+  const [legalPages, setLegalPages] = useState({
+    privacy: { title: 'Privacy Policy', body: '' },
+    terms: { title: 'Terms of Service', body: '' },
+  })
+  const [legalLoading, setLegalLoading] = useState(false)
+  const [legalSaving, setLegalSaving] = useState(null)
+  const [legalError, setLegalError] = useState(null)
+  const [legalMessage, setLegalMessage] = useState('')
+
   // ── Load products ──
   const loadProducts = useCallback(() => {
     setProductLoading(true)
@@ -1243,7 +1256,7 @@ export default function AdminPage() {
     setKittyLoading(true)
     setKittyError(null)
     Promise.allSettled([
-      getKittyPlans(),
+      getAdminKittyPlans(true).catch(() => getKittyPlans()),
       getKittyMembers(),
       getAdminEnrollments(),
       getAdminEnrollmentStats(),
@@ -1255,14 +1268,24 @@ export default function AdminPage() {
         if (enrollmentsR.status === 'fulfilled') setKittyEnrollments(enrollmentsR.value)
         if (statsR.status === 'fulfilled') setKittyStats(statsR.value)
         if (withdrawalsR.status === 'fulfilled') setKittyWithdrawals(withdrawalsR.value)
-        const failed = [plansR, membersR, enrollmentsR, statsR, withdrawalsR]
-          .find((r) => r.status === 'rejected')
-        if (failed) setKittyError(failed.reason?.message || 'Failed to load some kitty data')
+        if (enrollmentsR.status === 'rejected') {
+          setKittyError(enrollmentsR.reason?.message || 'Failed to load enrollment requests')
+        } else {
+          const failed = [plansR, membersR, statsR, withdrawalsR]
+            .find((r) => r.status === 'rejected')
+          if (failed) setKittyError(failed.reason?.message || 'Failed to load some kitty data')
+        }
       })
       .finally(() => setKittyLoading(false))
   }, [])
 
   useEffect(() => { if (tab === 'kitty') loadKitty() }, [tab, loadKitty])
+
+  useEffect(() => {
+    if (tab !== 'kitty') return undefined
+    const id = setInterval(loadKitty, 15000)
+    return () => clearInterval(id)
+  }, [tab, loadKitty])
 
   useEffect(() => { if (tab === 'rates') setRatesForm({ ...rates }) }, [tab, rates])
 
@@ -1279,6 +1302,47 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => { if (tab === 'notifications') loadNotifications() }, [tab, loadNotifications])
+
+  const loadLegalPages = useCallback(() => {
+    setLegalLoading(true)
+    setLegalError(null)
+    getPages()
+      .then((pages) => {
+        setLegalPages((prev) => {
+          const next = { ...prev }
+          for (const page of pages) {
+            if (page.slug === 'privacy' || page.slug === 'terms') {
+              next[page.slug] = { title: page.title, body: page.body, updatedAt: page.updatedAt }
+            }
+          }
+          return next
+        })
+      })
+      .catch((e) => setLegalError(e.message || 'Failed to load legal pages'))
+      .finally(() => setLegalLoading(false))
+  }, [])
+
+  useEffect(() => { if (tab === 'legal') loadLegalPages() }, [tab, loadLegalPages])
+
+  const handleSaveLegal = async (slug) => {
+    const page = legalPages[slug]
+    if (!page) return
+    setLegalSaving(slug)
+    setLegalError(null)
+    setLegalMessage('')
+    try {
+      const saved = await updateAdminPage(slug, { title: page.title, body: page.body })
+      setLegalPages((prev) => ({
+        ...prev,
+        [slug]: { title: saved.title, body: saved.body, updatedAt: saved.updatedAt },
+      }))
+      setLegalMessage(`${saved.title} saved.`)
+    } catch (e) {
+      setLegalError(e.message || 'Failed to save')
+    } finally {
+      setLegalSaving(null)
+    }
+  }
 
   // ── Product handlers ──
   const handleSaveProduct = async (payload) => {
@@ -1513,6 +1577,9 @@ export default function AdminPage() {
         <button type="button" className={tab === 'notifications' ? 'active' : ''} onClick={() => setTab('notifications')}>
           <span className="tab-icon">🔔</span> Notifications
         </button>
+        <button type="button" className={tab === 'legal' ? 'active' : ''} onClick={() => setTab('legal')}>
+          <span className="tab-icon">📄</span> Privacy / Terms
+        </button>
       </nav>
 
       {/* ── Products Tab ── */}
@@ -1731,6 +1798,7 @@ export default function AdminPage() {
                 <div>
                   <div className="kitty-sub-header">
                     <h3>Enrollment Requests Awaiting Approval</h3>
+                    <button type="button" className="btn-sm btn-outline" onClick={loadKitty}>Refresh</button>
                   </div>
                   
                   {pendingEnrollments.length === 0 ? (
@@ -1755,7 +1823,7 @@ export default function AdminPage() {
                                 <td className="td-code">{e.enrollmentCode}</td>
                                 <td>
                                   <div className="member-name">{e.userName}</div>
-                                  <div className="member-contact">{e.userEmail}</div>
+                                  <div className="member-contact">{e.userPhone || e.userEmail || '—'}</div>
                                 </td>
                                 <td>
                                   <div>{plan?.name || '—'}</div>
@@ -1786,7 +1854,7 @@ export default function AdminPage() {
                 <div>
                   <div className="kitty-sub-header">
                     <div className="kitty-filters">
-                      {['all', 'active', 'completed', 'cancelled', 'rejected'].map((s) => (
+                      {['all', 'pending', 'active', 'completed', 'cancelled', 'rejected'].map((s) => (
                         <button
                           key={s}
                           type="button"
@@ -1826,7 +1894,7 @@ export default function AdminPage() {
                                 <td className="td-code">{e.enrollmentCode}</td>
                                 <td>
                                   <div className="member-name">{e.userName}</div>
-                                  <div className="member-contact">{e.userEmail}</div>
+                                  <div className="member-contact">{e.userPhone || e.userEmail || '—'}</div>
                                 </td>
                                 <td>{plan?.name || '—'}</td>
                                 <td>
@@ -2292,6 +2360,77 @@ export default function AdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Privacy / Terms Tab ── */}
+      {tab === 'legal' && (
+        <section className="admin-section">
+          <div className="admin-section-header">
+            <div>
+              <h2>Privacy &amp; Terms</h2>
+              <p className="admin-section-sub">
+                Edit the pages linked in the site footer. Use a blank line between paragraphs.
+                Start a line with ## for a heading.
+              </p>
+            </div>
+          </div>
+
+          {legalError && <p className="admin-error">{legalError}</p>}
+          {legalMessage && <p className="admin-msg success">{legalMessage}</p>}
+          {legalLoading && <p className="admin-section-sub">Loading…</p>}
+
+          {!legalLoading && (
+            <div className="admin-legal-grid">
+              {['privacy', 'terms'].map((slug) => {
+                const page = legalPages[slug]
+                const heading = slug === 'privacy' ? 'Privacy Policy' : 'Terms of Service'
+                const path = slug === 'privacy' ? '/privacy' : '/terms'
+                return (
+                  <form
+                    key={slug}
+                    className="admin-form admin-form--wide"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      handleSaveLegal(slug)
+                    }}
+                  >
+                    <h3>{heading}</h3>
+                    <p className="admin-section-sub" style={{ marginBottom: '1rem' }}>
+                      Live page: <Link to={path} target="_blank" rel="noreferrer">{path}</Link>
+                      {page.updatedAt ? ` · Last saved ${new Date(page.updatedAt).toLocaleString()}` : ''}
+                    </p>
+                    <div className="form-row">
+                      <label>Title</label>
+                      <input
+                        value={page.title}
+                        onChange={(e) => setLegalPages((prev) => ({
+                          ...prev,
+                          [slug]: { ...prev[slug], title: e.target.value },
+                        }))}
+                        required
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label>Content</label>
+                      <textarea
+                        className="admin-legal-body"
+                        value={page.body}
+                        onChange={(e) => setLegalPages((prev) => ({
+                          ...prev,
+                          [slug]: { ...prev[slug], body: e.target.value },
+                        }))}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="btn-primary" disabled={legalSaving === slug}>
+                      {legalSaving === slug ? 'Saving…' : `Save ${heading}`}
+                    </button>
+                  </form>
+                )
+              })}
             </div>
           )}
         </section>

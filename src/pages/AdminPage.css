@@ -291,6 +291,23 @@
   margin-bottom: 1.25rem;
 }
 
+.admin-form--wide {
+  max-width: none;
+}
+
+.admin-legal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.admin-legal-body {
+  min-height: 28rem;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
 .form-row {
   margin-bottom: 1rem;
 }
@@ -896,6 +913,10 @@
   .admin-tabs button {
     padding: 0.5rem 0.8rem;
     font-size: 0.82rem;
+  }
+
+  .admin-legal-grid {
+    grid-template-columns: 1fr;
   }
 
   .admin-section-header {
