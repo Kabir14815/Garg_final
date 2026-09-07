@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
+_SECRETS_DIR = Path("/etc/secrets")
 
 _ready = False
 _init_error: Optional[str] = None
@@ -22,15 +23,52 @@ TOPIC_KITTY = "garg_kitty"
 ANDROID_CHANNEL_ID = "garg_default"
 
 
+def _existing_file(path: Path) -> Optional[Path]:
+    try:
+        return path if path.is_file() else None
+    except OSError:
+        return None
+
+
 def _resolve_key_file(value: str) -> Optional[Path]:
     """Return the service-account file for `value`, or None if it isn't a path."""
     value = (value or "").strip()
     if not value or value.startswith("{"):
         return None
     candidate = Path(value).expanduser()
-    if not candidate.is_absolute():
-        candidate = _BACKEND_DIR / candidate
-    return candidate if candidate.is_file() else None
+    names = [candidate.name, value.lstrip("/")]
+    search = []
+    if candidate.is_absolute():
+        search.append(candidate)
+    else:
+        search.append(_BACKEND_DIR / candidate)
+        search.append(Path.cwd() / candidate)
+    for name in names:
+        search.append(_SECRETS_DIR / Path(name).name)
+    for path in search:
+        found = _existing_file(path)
+        if found:
+            return found
+    return None
+
+
+def _default_key_files() -> list[Path]:
+    names = (
+        "firebase-admin.json",
+        "firebase-adminsdk.json",
+        "serviceAccountKey.json",
+        "FIREBASE_SERVICE_ACCOUNT_JSON",
+    )
+    paths: list[Path] = []
+    for name in names:
+        paths.extend(
+            [
+                _SECRETS_DIR / name,
+                _BACKEND_DIR / name,
+                Path.cwd() / name,
+            ]
+        )
+    return paths
 
 
 def init_firebase() -> bool:
@@ -59,6 +97,13 @@ def init_firebase() -> bool:
         file_path = _resolve_key_file(raw)
         if file_path is not None:
             raw = ""
+    if file_path is None and not raw:
+        for path in _default_key_files():
+            found = _existing_file(path)
+            if found:
+                file_path = found
+                print(f"✓ FCM: using service account file {found}")
+                break
 
     try:
         if raw:
