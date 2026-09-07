@@ -1,22 +1,8 @@
-# Netlify: SPA + proxy API/uploads to Render (fixes 404 when VITE_API_URL was missing at build).
-# Update the Render URL here if your API host changes.
+# SPA only — API and uploads are called directly on Render (see src/api/client.js).
 [build]
   command = "npm run build"
   publish = "dist"
 
-[[redirects]]
-  from = "/api/*"
-  to = "https://garg-final.onrender.com/api/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/uploads/*"
-  to = "https://garg-final.onrender.com/uploads/:splat"
-  status = 200
-  force = true
-
-# Client-side routes (React Router)
 [[redirects]]
   from = "/*"
   to = "/index.html"

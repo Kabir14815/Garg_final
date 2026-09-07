@@ -296,6 +296,7 @@ class DeviceRegisterRequest(BaseModel):
     platform: str = "unknown"  # android | ios
     user_id: Optional[str] = None
     user_email: Optional[str] = None
+    user_phone: Optional[str] = None
 
 
 class DeviceRegisterResponse(BaseModel):

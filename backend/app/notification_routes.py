@@ -1,16 +1,18 @@
 """Device token registration and admin push-notification endpoints."""
 from fastapi import APIRouter, HTTPException, Query
 
-from app.fcm import init_firebase, is_ready, send_to_topic, status_message
+from app.fcm import init_firebase, is_ready, send_to_tokens, send_to_topic, status_message
 from app.notification_store import (
     attach_user,
     device_count,
+    fanout_broadcast_notification,
     list_user_notifications,
     list_logs,
     log_send,
     mark_all_user_notifications_read,
     mark_user_notification_read,
     register_device,
+    tokens_for_audience,
     unread_user_notification_count,
     unregister_device,
 )
@@ -53,6 +55,7 @@ def register_device_endpoint(body: DeviceRegisterRequest):
         platform=body.platform,
         user_id=body.user_id,
         user_email=body.user_email,
+        user_phone=body.user_phone,
     )
     return DeviceRegisterResponse(ok=True, token=token)
 
@@ -62,7 +65,7 @@ def attach_device_user(body: DeviceRegisterRequest):
     token = (body.token or "").strip()
     if not token:
         raise HTTPException(status_code=400, detail="FCM token is required")
-    attach_user(token, body.user_id, body.user_email)
+    attach_user(token, body.user_id, body.user_email, body.user_phone)
     return DeviceRegisterResponse(ok=True, token=token)
 
 
@@ -96,6 +99,16 @@ def send_notification(
     }
     image_url = (body.image_url or "").strip() or None
 
+    try:
+        fanout_broadcast_notification(
+            title=title,
+            body=message,
+            audience=audience,
+            data=data,
+        )
+    except Exception as exc:
+        print(f"⚠ Inbox fanout failed: {exc}")
+
     if not init_firebase() or not is_ready():
         log_send(
             title=title,
@@ -120,6 +133,15 @@ def send_notification(
             image_url=image_url,
             data=data,
         )
+        tokens = tokens_for_audience(audience)
+        if tokens:
+            send_to_tokens(
+                tokens=tokens,
+                title=title,
+                body=message,
+                image_url=image_url,
+                data=data,
+            )
     except Exception as e:
         log_send(
             title=title,

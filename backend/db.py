@@ -178,6 +178,7 @@ def ensure_indexes():
         # Device tokens (FCM)
         db["device_tokens"].create_index("token", unique=True)
         db["device_tokens"].create_index("user_id", sparse=True)
+        db["device_tokens"].create_index("user_phone", sparse=True)
         db["device_tokens"].create_index("platform")
         db["device_tokens"].create_index("updated_at")
 

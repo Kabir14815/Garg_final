@@ -32,6 +32,7 @@ def register_device(
     platform: str,
     user_id: Optional[str] = None,
     user_email: Optional[str] = None,
+    user_phone: Optional[str] = None,
 ) -> dict:
     coll = get_device_tokens_collection()
     now = _now()
@@ -48,6 +49,8 @@ def register_device(
         update["user_id"] = user_id or None
     if user_email is not None:
         update["user_email"] = (user_email or "").strip().lower() or None
+    if user_phone is not None:
+        update["user_phone"] = (user_phone or "").strip() or None
 
     coll.update_one(
         {"token": token},
@@ -58,18 +61,24 @@ def register_device(
     return _str_id(dict(doc)) if doc else update
 
 
-def attach_user(token: str, user_id: Optional[str], user_email: Optional[str]) -> None:
+def attach_user(
+    token: str,
+    user_id: Optional[str],
+    user_email: Optional[str],
+    user_phone: Optional[str] = None,
+) -> None:
     if not token:
         return
+    fields = {
+        "user_id": user_id or None,
+        "user_email": (user_email or "").strip().lower() or None,
+        "updated_at": _now(),
+    }
+    if user_phone is not None:
+        fields["user_phone"] = (user_phone or "").strip() or None
     get_device_tokens_collection().update_one(
         {"token": token},
-        {
-            "$set": {
-                "user_id": user_id or None,
-                "user_email": (user_email or "").strip().lower() or None,
-                "updated_at": _now(),
-            }
-        },
+        {"$set": fields},
     )
 
 
@@ -161,6 +170,7 @@ def device_tokens_for_user(
     if user_email:
         clauses.append({"user_email": user_email.strip().lower()})
     if user_phone:
+        clauses.append({"user_phone": user_phone})
         for user in get_users_collection().find({"phone": user_phone}, {"_id": 1}):
             clauses.append({"user_id": str(user["_id"])})
     if not clauses:
@@ -172,6 +182,89 @@ def device_tokens_for_user(
         )
         if doc.get("token")
     ]
+
+
+def all_device_tokens() -> list[str]:
+    return [
+        str(doc["token"])
+        for doc in get_device_tokens_collection().find({}, {"token": 1})
+        if doc.get("token")
+    ]
+
+
+def _iter_audience_users(audience: str):
+    coll = get_users_collection()
+    if (audience or "all").strip().lower() == "kitty":
+        from db import get_kitty_enrollments_collection
+
+        phones = {
+            str(doc.get("user_phone") or "").strip()
+            for doc in get_kitty_enrollments_collection().find({}, {"user_phone": 1})
+            if doc.get("user_phone")
+        }
+        emails = {
+            str(doc.get("user_email") or "").strip().lower()
+            for doc in get_kitty_enrollments_collection().find({}, {"user_email": 1})
+            if doc.get("user_email")
+        }
+        clauses = []
+        if phones:
+            clauses.append({"phone": {"$in": list(phones)}})
+        if emails:
+            clauses.append({"email": {"$in": list(emails)}})
+        if not clauses:
+            return
+        seen = set()
+        for doc in coll.find({"$or": clauses}):
+            uid = str(doc["_id"])
+            if uid in seen:
+                continue
+            seen.add(uid)
+            yield doc
+        return
+    for doc in coll.find({}):
+        yield doc
+
+
+def fanout_broadcast_notification(
+    *,
+    title: str,
+    body: str,
+    audience: str = "all",
+    data: Optional[dict] = None,
+) -> int:
+    """Write one in-app inbox row per customer so the Flutter list updates."""
+    count = 0
+    payload = {"source": "admin", **(data or {})}
+    for user in _iter_audience_users(audience):
+        create_user_notification(
+            title=title,
+            body=body,
+            notification_type="broadcast",
+            user_id=str(user.get("_id") or ""),
+            user_phone=str(user.get("phone") or ""),
+            user_email=str(user.get("email") or ""),
+            data=payload,
+        )
+        count += 1
+    return count
+
+
+def tokens_for_audience(audience: str) -> list[str]:
+    if (audience or "all").strip().lower() != "kitty":
+        return all_device_tokens()
+    tokens: list[str] = []
+    seen = set()
+    for user in _iter_audience_users("kitty"):
+        for token in device_tokens_for_user(
+            user_id=str(user.get("_id") or ""),
+            user_phone=str(user.get("phone") or ""),
+            user_email=str(user.get("email") or ""),
+        ):
+            if token not in seen:
+                seen.add(token)
+                tokens.append(token)
+    return tokens
 
 
 def create_user_notification(

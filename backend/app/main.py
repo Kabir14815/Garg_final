@@ -130,18 +130,29 @@ def on_startup():
         print(f"⚠ Failed to seed legal pages: {e}")
 
 
-_cors_env = os.getenv("CORS_ORIGINS", "").strip()
-
-# Handle wildcard CORS for development
+# Website talks to this API directly (same host as the Flutter app). Auth is
+# localStorage, not cookies, so wildcard CORS is safe. Always include the live
+# site / local Vite origins even if CORS_ORIGINS on the host is stale.
+_ALWAYS_CORS_ORIGINS = [
+    "https://gargjewellers.co.in",
+    "https://www.gargjewellers.co.in",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+_cors_env = os.getenv("CORS_ORIGINS", "*").strip() or "*"
 if _cors_env == "*":
     _cors_origins = ["*"]
-    _allow_credentials = False  # Can't use credentials with wildcard
+    _allow_credentials = False
 else:
-    _cors_origins = [
-        o.strip().rstrip("/")
-        for o in _cors_env.split(",")
-        if o.strip()
-    ]
+    _cors_origins = []
+    for o in list(_cors_env.split(",")) + _ALWAYS_CORS_ORIGINS:
+        o = o.strip().rstrip("/")
+        if o and o not in _cors_origins:
+            _cors_origins.append(o)
     _allow_credentials = True
 
 print("CORS:", _cors_origins)
@@ -151,6 +162,7 @@ app.add_middleware(
     allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*(netlify\.app|vercel\.app)$",
 )
 
 app.include_router(upload_router)

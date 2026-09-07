@@ -44,6 +44,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   PURITIES,
 } from '../data/shopData'
+import { LEGAL_DEFAULTS } from '../data/legalPages'
 import './AdminPage.css'
 
 // ─── Product image uploader ───────────────────────────────────────────────────
@@ -1232,8 +1233,8 @@ export default function AdminPage() {
 
   // ── Legal pages ──
   const [legalPages, setLegalPages] = useState({
-    privacy: { title: 'Privacy Policy', body: '' },
-    terms: { title: 'Terms of Service', body: '' },
+    privacy: { title: LEGAL_DEFAULTS.privacy.title, body: LEGAL_DEFAULTS.privacy.body },
+    terms: { title: LEGAL_DEFAULTS.terms.title, body: LEGAL_DEFAULTS.terms.body },
   })
   const [legalLoading, setLegalLoading] = useState(false)
   const [legalSaving, setLegalSaving] = useState(null)
@@ -1318,7 +1319,12 @@ export default function AdminPage() {
           return next
         })
       })
-      .catch((e) => setLegalError(e.message || 'Failed to load legal pages'))
+      .catch(() => {
+        setLegalPages({
+          privacy: { title: LEGAL_DEFAULTS.privacy.title, body: LEGAL_DEFAULTS.privacy.body },
+          terms: { title: LEGAL_DEFAULTS.terms.title, body: LEGAL_DEFAULTS.terms.body },
+        })
+      })
       .finally(() => setLegalLoading(false))
   }, [])
 

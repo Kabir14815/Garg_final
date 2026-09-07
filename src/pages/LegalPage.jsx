@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPage } from '../api/client'
+import { defaultLegalPage } from '../data/legalPages'
 import './LegalPage.css'
 
 const SLUG_META = {
@@ -35,19 +36,17 @@ function renderBody(body) {
 export default function LegalPage({ slug }) {
   const meta = SLUG_META[slug] || { eyebrow: 'Legal', fallbackTitle: 'Legal' }
   const [page, setPage] = useState(null)
-  const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    setError(null)
     getPage(slug)
       .then((data) => {
         if (!cancelled) setPage(data)
       })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || 'Unable to load this page')
+      .catch(() => {
+        if (!cancelled) setPage(defaultLegalPage(slug))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -62,8 +61,7 @@ export default function LegalPage({ slug }) {
       <p className="legal-eyebrow">{meta.eyebrow}</p>
       <h1 className="legal-title">{title}</h1>
       {loading && <p className="legal-status">Loading…</p>}
-      {error && !loading && <p className="legal-status legal-status--error">{error}</p>}
-      {!loading && !error && page && (
+      {!loading && page && (
         <div className="legal-body">{renderBody(page.body)}</div>
       )}
       <p className="legal-back">

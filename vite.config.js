@@ -23,13 +23,6 @@ export default defineConfig({
     }),
   ],
 
-  server: {
-    proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/uploads': { target: 'http://localhost:8000', changeOrigin: true },
-    },
-  },
-
   build: {
     // Target modern browsers for smaller output (no legacy polyfills)
     target: 'es2020',

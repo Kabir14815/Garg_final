@@ -1,9 +1,11 @@
-// Dev: leave VITE_API_URL unset — same-origin `/api` (Vite proxy in vite.config.js).
-// Production (e.g. Netlify + API on Render): set VITE_API_URL = https://your-api.onrender.com (no trailing slash).
+// Same live API the Flutter app uses. Override locally with VITE_API_URL if needed.
+const PRODUCTION_API_BASE = 'https://garg-final.onrender.com'
 const _raw = import.meta.env.VITE_API_URL
-const API_BASE = typeof _raw === 'string' ? _raw.replace(/\/$/, '') : ''
+const API_BASE = (
+  typeof _raw === 'string' && _raw.trim() ? _raw.trim() : PRODUCTION_API_BASE
+).replace(/\/$/, '')
 
-/** Image paths from the API are like /uploads/...; prefix API origin on Netlify so <img> hits Render, not the static host. */
+/** Image paths from the API are like /uploads/...; prefix the API origin so <img> hits Render. */
 function toPublicImageUrl(path) {
   if (!path || typeof path !== 'string') return path
   if (/^https?:\/\//i.test(path)) return path
@@ -698,7 +700,7 @@ export async function updateAdminPage(slug, payload) {
   }
 }
 
-/** Upload one product image; returns public path e.g. /uploads/products/….jpg (dev: proxied to API). */
+/** Upload one product image; returns public path e.g. /uploads/products/….jpg. */
 export async function uploadProductImage(file) {
   const url = `${API_BASE}/api/uploads/product-image`
   const body = new FormData()
