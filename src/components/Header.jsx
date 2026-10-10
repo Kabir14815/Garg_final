@@ -80,6 +80,7 @@ export default function Header() {
             </div>
             <MainNavLink to="/about" onNavigate={closeMenus}>About</MainNavLink>
             <MainNavLink to="/book" onNavigate={closeMenus}>Book</MainNavLink>
+            <MainNavLink to="/download" onNavigate={closeMenus}>Download App</MainNavLink>
             {user ? (
               <>
                 {user.phone && !user.isAdmin && (

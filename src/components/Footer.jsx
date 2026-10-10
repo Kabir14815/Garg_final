@@ -14,6 +14,7 @@ function LocationIcon() {
 
 const footerNavLinks = [
   { label: 'About Us', to: '/about' },
+  { label: 'Download App', to: '/download' },
   { label: 'Book an Appointment', to: '/book' },
   { label: 'Visit Our Store', href: '#contact' },
   { label: 'Talk to an Expert', href: 'tel:+919054900042' },

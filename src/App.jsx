@@ -19,6 +19,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'))
 const BookingPage = lazy(() => import('./pages/BookingPage'))
 const UserDashboard = lazy(() => import('./pages/UserDashboard'))
 const LegalPage = lazy(() => import('./pages/LegalPage'))
+const DownloadPage = lazy(() => import('./pages/DownloadPage'))
 
 function PageLoading() {
   return (
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/privacy" element={<LegalPage slug="privacy" />} />
                 <Route path="/terms" element={<LegalPage slug="terms" />} />
                 <Route path="/book" element={<BookingPage />} />
+                <Route path="/download" element={<DownloadPage />} />
                 <Route path="/shop" element={<ShopPage />} />
                 <Route path="/product/:productId" element={<ProductPage />} />
                 <Route path="/cart" element={<CartPage />} />
