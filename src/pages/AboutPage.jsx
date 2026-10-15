@@ -78,7 +78,6 @@ export default function AboutPage() {
               <img src="/images/owner-coo.png" alt="Harshul Garg" className="owner-img" loading="lazy" />
             </div>
             <h3 className="owner-name">HARSHUL GARG</h3>
-            <p className="owner-title">(COO)</p>
           </div>
         </div>
       </section>
@@ -91,7 +90,7 @@ export default function AboutPage() {
         </p>
         <div className="about-actions">
           <Link to="/book" className="about-cta about-cta--outline">Schedule a visit</Link>
-          <a href="tel:+919054900042" className="about-link-phone">+91 98763 76859</a>
+          <a href="tel:+919054900042" className="about-link-phone">+91 90549 00042</a>
         </div>
       </section>
     </div>

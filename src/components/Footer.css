@@ -42,15 +42,6 @@
   margin: 0 0 0.75rem 0;
 }
 
-.footer-cta-tagline {
-  font-family: var(--font-sans);
-  font-size: clamp(0.9rem, 1.5vw, 1rem);
-  line-height: 1.5;
-  color: var(--text-on-dark);
-  margin: 0 0 0.5rem 0;
-  opacity: 0.95;
-}
-
 .footer-cta-contact {
   font-family: var(--font-sans);
   font-size: 0.9rem;

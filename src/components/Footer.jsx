@@ -31,9 +31,6 @@ export default function Footer() {
     <footer className="footer" id="contact" ref={footerRef}>
       <div className={`footer-cta ${inView ? 'footer-cta--visible' : ''}`}>
         <h2 className="footer-cta-title">THE HOUSE OF GARG</h2>
-        <p className="footer-cta-tagline">
-          Royalty Claims Its Throne in Punjab – Find a Boutique or Book a Consultation
-        </p>
         <p className="footer-cta-contact">
           <a href="https://mail.google.com/mail/?view=cm&fs=1&to=gargjewel@gmail.com" target="_blank" rel="noopener noreferrer">
             gargjewel@gmail.com
